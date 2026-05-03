@@ -106,8 +106,9 @@ function getSectionLabelLines(label) {
     .filter(Boolean);
 }
 
-function buildSectionRadarSvg(data) {
+function buildSectionRadarSvg(data, options = {}) {
   if (!data?.length) return null;
+  const showValueLabels = Boolean(options?.showValueLabels);
   const size = 300;
   const center = size / 2;
   const maxR = 96;
@@ -155,12 +156,27 @@ function buildSectionRadarSvg(data) {
       </text>
     );
   });
+  const valueLabels = showValueLabels
+    ? data.map((item, index) => {
+      const angle = -Math.PI / 2 + (2 * Math.PI * index) / data.length;
+      const radius = maxR - 18;
+      const x = center + Math.cos(angle) * radius;
+      const y = center + Math.sin(angle) * radius;
+      const percent = `${(Number(item?.value ?? 0) * 100).toFixed(1)}%`;
+      return (
+        <text key={`value-${item.label}`} x={x} y={y + 14} textAnchor="middle" className="session-radar-value-label">
+          {percent}
+        </text>
+      );
+    })
+    : null;
   return (
     <svg viewBox={`0 0 ${size} ${size}`} className="session-radar-chart" role="img" aria-label="Average section performance radar chart">
       {grid}
       {axes}
       <polygon points={points} className="session-radar-shape" />
       {labels}
+      {valueLabels}
     </svg>
   );
 }
@@ -170,6 +186,19 @@ const DEFAULT_SESSION_EXPORT_OPTIONS = {
   questions: true,
   studentRanking: true,
 };
+
+const sessionExportNaturalCollator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+
+function renderSessionExportSectionHeading(index, title, description = "") {
+  return (
+    <div className="session-export-section-heading">
+      <div className="session-export-section-heading-copy">
+        <div className="session-export-section-heading-title">{title}</div>
+        {description ? <div className="session-export-section-heading-description">{description}</div> : null}
+      </div>
+    </div>
+  );
+}
 
 function formatCompactExportText(value, maxLength = 110) {
   const normalized = String(value ?? "").replace(/\s+/g, " ").trim();
@@ -182,9 +211,13 @@ function formatSessionExportQuestionId(questionId, setId = "") {
   const raw = String(questionId ?? "").trim();
   if (!raw) return "";
   const prefix = String(setId ?? "").trim();
-  const withoutPrefix = prefix && raw.startsWith(prefix)
-    ? raw.slice(prefix.length).replace(/^[-_]+/, "")
-    : raw;
+  let withoutPrefix = raw;
+  if (prefix) {
+    const prefixIndex = raw.indexOf(prefix);
+    if (prefixIndex >= 0) {
+      withoutPrefix = raw.slice(prefixIndex + prefix.length).replace(/^[-_]+/, "");
+    }
+  }
   const match = withoutPrefix.match(/(\d+)/);
   return match ? match[1] : raw;
 }
@@ -198,7 +231,7 @@ function buildDistributionChartSvg({
 }) {
   if (!labels.length) return null;
   const width = 640;
-  const height = 260;
+  const height = 240;
   const margin = {
     top: 16,
     right: 16,
@@ -263,14 +296,6 @@ function buildDistributionChartSvg({
                 className="session-export-distribution-axis-label"
               >
                 {label}
-              </text>
-              <text
-                x={x + barWidth / 2}
-                y={Math.max(12, y - 6)}
-                textAnchor="middle"
-                className="session-export-distribution-value"
-              >
-                {count}
               </text>
             </g>
           );
@@ -1389,6 +1414,8 @@ export default function AdminConsoleResultsWorkspace(props) {
   const sessionDetailNestedSectionAverages = sessionDetailDerived.sessionDetailNestedSectionAverages;
   const sessionDetailStudentRankingRows = sessionDetailDerived.sessionDetailStudentRankingRows;
   const sessionDetailRankingSections = sessionDetailDerived.sessionDetailRankingSections;
+  const isMockSessionDetailForExport = sessionDetail.type === "mock";
+  const isDailySessionDetail = resultContext?.type === "daily" || String(sessionDetail.type ?? "").trim() === "daily";
   const sessionDetailBestQuestions = useMemo(
     () => sessionDetailQuestionAnalysis.slice(0, 5),
     [sessionDetailQuestionAnalysis]
@@ -1418,9 +1445,10 @@ export default function AdminConsoleResultsWorkspace(props) {
       return isImageAsset(choiceText) ? normalizeAdminRenderableAsset(choiceText) : "";
     };
 
-    return (sessionDetailQuestions ?? []).flatMap((rawQuestion) => {
+    const rows = (sessionDetailQuestions ?? []).flatMap((rawQuestion) => {
       const question = mergeQuestionData(rawQuestion);
       const answerKey = question.questionId ?? question.id;
+      const sourceQuestionKey = question.sourceQuestionId || answerKey;
       const stemAsset = [
         question.stemAsset,
         question.mediaFile,
@@ -1442,7 +1470,10 @@ export default function AdminConsoleResultsWorkspace(props) {
       if (Array.isArray(question.parts) && question.parts.length) {
         return question.parts.map((part, index) => {
           const qid = `${answerKey}-${index + 1}`;
-          const displayId = formatSessionExportQuestionId(answerKey, selectedSessionDetail?.problem_set_id);
+          const displayId = formatSessionExportQuestionId(
+            isDailySessionDetail ? sourceQuestionKey : answerKey,
+            selectedSessionDetail?.problem_set_id
+          ) || formatSessionExportQuestionId(answerKey, selectedSessionDetail?.problem_set_id);
           const correctIndices = getEffectiveAnswerIndices(part);
           const accuracy = accuracyByQuestionId.get(String(qid));
           return {
@@ -1459,7 +1490,10 @@ export default function AdminConsoleResultsWorkspace(props) {
 
       const correctIndices = getEffectiveAnswerIndices(question);
       const accuracy = accuracyByQuestionId.get(String(answerKey));
-      const displayId = formatSessionExportQuestionId(answerKey, selectedSessionDetail?.problem_set_id);
+      const displayId = formatSessionExportQuestionId(
+        isDailySessionDetail ? sourceQuestionKey : answerKey,
+        selectedSessionDetail?.problem_set_id
+      ) || formatSessionExportQuestionId(answerKey, selectedSessionDetail?.problem_set_id);
       return [{
         qid: String(answerKey),
         displayId,
@@ -1470,10 +1504,69 @@ export default function AdminConsoleResultsWorkspace(props) {
         rate: Number(accuracy?.rate ?? 0),
       }];
     });
-  }, [isImageAsset, sessionDetailQuestionAnalysis, sessionDetailQuestions, splitAssetValues]);
+    return rows.sort((left, right) => {
+      const leftKey = String(left.displayId || left.qid || "");
+      const rightKey = String(right.displayId || right.qid || "");
+      const primary = sessionExportNaturalCollator.compare(leftKey, rightKey);
+      if (primary !== 0) return primary;
+      return sessionExportNaturalCollator.compare(String(left.qid), String(right.qid));
+    });
+  }, [isDailySessionDetail, isImageAsset, sessionDetailQuestionAnalysis, sessionDetailQuestions, splitAssetValues]);
   const sessionExportHasSelections = Object.values(sessionExportOptions).some(Boolean);
   const sessionExportQuestionsDisabled = !sessionQuestionExportRows.length;
   const sessionExportRankingDisabled = !sessionDetailStudentRankingRows.length;
+  const sessionExportRankingSections = useMemo(() => (
+    isDailySessionDetail
+      ? sessionDetailRankingSections.filter((section) => {
+        const label = String(section?.section ?? "").trim().toLowerCase();
+        return label && label !== "daily test" && label !== "daily";
+      })
+      : isMockSessionDetailForExport
+        ? sessionDetailMainSectionAverages.map((row) => ({ section: row.section }))
+      : sessionDetailRankingSections
+  ), [isDailySessionDetail, isMockSessionDetailForExport, sessionDetailMainSectionAverages, sessionDetailRankingSections]);
+  const sessionExportQuestionDisplayIdByQid = useMemo(() => (
+    new Map(sessionQuestionExportRows.map((row) => [String(row.qid), String(row.displayId ?? "")]))
+  ), [sessionQuestionExportRows]);
+  const sessionExportSectionOrder = useMemo(() => {
+    const hasSummary = Boolean(sessionExportOptions.resultsSummary);
+    const hasQuestions = Boolean(sessionExportOptions.questions);
+    return {
+      resultsSummary: 1,
+      questions: hasSummary ? 2 : 1,
+      studentRanking: 1 + Number(hasSummary) + Number(hasQuestions),
+    };
+  }, [sessionExportOptions.questions, sessionExportOptions.resultsSummary]);
+  const sessionExportRankingSectionRatesByStudent = useMemo(() => {
+    if (!isMockSessionDetailForExport) return null;
+    return new Map(
+      sessionDetailStudentRankingRows.map((row) => {
+        if (isImportedSummaryAttempt(row.attempt)) {
+          return [String(row.student_id), row.sectionRates ?? {}];
+        }
+        const mainSummary = buildMainSectionSummaryLookup(
+          buildAttemptDetailRowsFromList(row.attempt?.answers_json, sessionDetailQuestions, getQuestionSectionLabel),
+          getSectionTitle
+        );
+        return [
+          String(row.student_id),
+          Object.fromEntries(
+            sessionExportRankingSections.map((section) => [
+              section.section,
+              Number(mainSummary.get(section.section)?.rate ?? row.sectionRates?.[section.section] ?? 0),
+            ])
+          ),
+        ];
+      })
+    );
+  }, [
+    getQuestionSectionLabel,
+    getSectionTitle,
+    isMockSessionDetailForExport,
+    sessionDetailQuestions,
+    sessionDetailStudentRankingRows,
+    sessionExportRankingSections,
+  ]);
 
   useEffect(() => {
     setSessionExportOptions((current) => {
@@ -2934,7 +3027,7 @@ export default function AdminConsoleResultsWorkspace(props) {
 
         {sessionExportOptions.resultsSummary ? (
           <section className="session-export-section">
-            <div className="session-export-section-title">Results Summary</div>
+            {renderSessionExportSectionHeading(sessionExportSectionOrder.resultsSummary, "Results Summary", "Score distribution and class averages")}
             <div className="session-export-summary-grid">
               <table className="session-export-table session-export-summary-table">
                 <tbody>
@@ -2976,16 +3069,11 @@ export default function AdminConsoleResultsWorkspace(props) {
 
             {isMockSessionDetail && (isImportedModelSummarySession || sessionDetailNestedSectionAverages.length) ? (
               <section className="session-export-section">
-                <div className="session-export-section-title">Average Section Performance</div>
+                <div className="session-export-panel-header">
+                  <div className="session-export-panel-title">Average Section Performance</div>
+                  <div className="session-export-panel-description">Summary table and radar chart</div>
+                </div>
                 <div className="session-export-performance-grid">
-                  {sessionDetailMainSectionAverages.length ? buildSectionRadarSvg(
-                    sessionDetailMainSectionAverages.map((row) => ({
-                      label: row.section,
-                      value: row.averageRate ?? 0,
-                    }))
-                  ) : (
-                    <div className="admin-help">No section average data yet.</div>
-                  )}
                   <div>
                     {isImportedModelSummarySession ? (
                       <table className="session-export-table session-export-section-table">
@@ -3002,8 +3090,12 @@ export default function AdminConsoleResultsWorkspace(props) {
                             <tr key={`session-export-main-${row.section}`}>
                               <td>{row.section}</td>
                               <td>{row.total}</td>
-                              <td>{row.averageCorrect.toFixed(2)}</td>
-                              <td>{(row.averageRate * 100).toFixed(1)}%</td>
+                              <td className={row.averageRate < sessionDetailPassRate ? "attempt-score-detail-below-pass" : ""}>
+                                {row.averageCorrect.toFixed(2)}
+                              </td>
+                              <td className={row.averageRate < sessionDetailPassRate ? "attempt-score-detail-below-pass" : ""}>
+                                {(row.averageRate * 100).toFixed(1)}%
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -3020,37 +3112,70 @@ export default function AdminConsoleResultsWorkspace(props) {
                           </tr>
                         </thead>
                         <tbody>
-                          {sessionDetailNestedSectionAverages.map((group) => (
-                            <Fragment key={`session-export-nested-${group.mainSection}`}>
-                              <tr>
-                                <td>{group.mainSection}</td>
-                                <td>Total</td>
-                                <td>{group.total}</td>
-                                <td>{group.averageCorrect.toFixed(2)}</td>
-                                <td>{(group.averageRate * 100).toFixed(1)}%</td>
-                              </tr>
-                              {group.subSections.map((subSection) => (
-                                <tr key={`session-export-sub-${group.mainSection}-${subSection.section}`}>
-                                  <td>{group.mainSection}</td>
-                                  <td>{subSection.section}</td>
-                                  <td>{subSection.total}</td>
-                                  <td>{subSection.averageCorrect.toFixed(2)}</td>
-                                  <td>{(subSection.averageRate * 100).toFixed(1)}%</td>
+                          {sessionDetailNestedSectionAverages.map((group) => {
+                            const rowSpan = 1 + group.subSections.length;
+                            const isGroupBelowPass = group.averageRate < sessionDetailPassRate;
+                            return (
+                              <Fragment key={`session-export-nested-${group.mainSection}`}>
+                                <tr className="attempt-overview-total-row session-section-average-total-row">
+                                  <td rowSpan={rowSpan} className="session-section-average-cell-section">
+                                    <span className="session-ranking-section-header">{renderTwoLineHeader(group.mainSection)}</span>
+                                  </td>
+                                  <td className="session-section-average-cell-subsection">
+                                    <span className="attempt-score-detail-total-label">Total</span>
+                                  </td>
+                                  <td className="session-section-average-cell-total">{group.total}</td>
+                                  <td className={`session-section-average-cell-correct ${isGroupBelowPass ? "attempt-score-detail-below-pass" : ""}`}>
+                                    {group.averageCorrect.toFixed(2)}
+                                  </td>
+                                  <td className={`session-section-average-cell-rate ${isGroupBelowPass ? "attempt-score-detail-below-pass" : ""}`}>
+                                    {(group.averageRate * 100).toFixed(1)}%
+                                  </td>
                                 </tr>
-                              ))}
-                            </Fragment>
-                          ))}
+                                {group.subSections.map((subSection) => {
+                                  const isSubSectionBelowPass = subSection.averageRate < sessionDetailPassRate;
+                                  return (
+                                    <tr
+                                      key={`session-export-sub-${group.mainSection}-${subSection.section}`}
+                                      className="session-section-average-subsection-row session-section-average-subsection-row-print"
+                                    >
+                                      <td className="session-section-average-cell-subsection">{subSection.section}</td>
+                                      <td className="session-section-average-cell-total">{subSection.total}</td>
+                                      <td className={`session-section-average-cell-correct ${isSubSectionBelowPass ? "attempt-score-detail-below-pass" : ""}`}>
+                                        {subSection.averageCorrect.toFixed(2)}
+                                      </td>
+                                      <td className={`session-section-average-cell-rate ${isSubSectionBelowPass ? "attempt-score-detail-below-pass" : ""}`}>
+                                        {(subSection.averageRate * 100).toFixed(1)}%
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </Fragment>
+                            );
+                          })}
                         </tbody>
                       </table>
                     )}
                   </div>
+                  {sessionDetailMainSectionAverages.length ? buildSectionRadarSvg(
+                    sessionDetailMainSectionAverages.map((row) => ({
+                      label: row.section,
+                      value: row.averageRate ?? 0,
+                    })),
+                    { showValueLabels: true }
+                  ) : (
+                    <div className="admin-help">No section average data yet.</div>
+                  )}
                 </div>
               </section>
             ) : null}
 
             {!isImportedSummarySession ? (
               <div className="session-export-question-stack">
-                <div className="session-export-panel-title">Top 5 Best Questions</div>
+                <div className="session-export-panel-header">
+                  <div className="session-export-panel-title">Top 5 Best Questions</div>
+                  <div className="session-export-panel-description">Highest accuracy questions in this session</div>
+                </div>
                 <table className="session-export-table session-export-mini-table">
                   <thead>
                     <tr>
@@ -3062,7 +3187,7 @@ export default function AdminConsoleResultsWorkspace(props) {
                   <tbody>
                     {sessionDetailBestQuestions.map((row) => (
                       <tr key={`session-export-best-${row.qid}`}>
-                        <td>{formatSessionExportQuestionId(row.qid, selectedSessionDetail.problem_set_id)}</td>
+                        <td>{sessionExportQuestionDisplayIdByQid.get(String(row.qid)) || formatSessionExportQuestionId(row.qid, selectedSessionDetail.problem_set_id)}</td>
                         <td>{formatCompactExportText(row.prompt)}</td>
                         <td>{(row.rate * 100).toFixed(1)}%</td>
                       </tr>
@@ -3075,7 +3200,10 @@ export default function AdminConsoleResultsWorkspace(props) {
                   </tbody>
                 </table>
 
-                <div className="session-export-panel-title">Top 5 Worst Questions</div>
+                <div className="session-export-panel-header">
+                  <div className="session-export-panel-title">Top 5 Worst Questions</div>
+                  <div className="session-export-panel-description">Lowest accuracy questions in this session</div>
+                </div>
                 <table className="session-export-table session-export-mini-table">
                   <thead>
                     <tr>
@@ -3087,7 +3215,7 @@ export default function AdminConsoleResultsWorkspace(props) {
                   <tbody>
                     {sessionDetailWorstQuestions.map((row) => (
                       <tr key={`session-export-worst-${row.qid}`}>
-                        <td>{formatSessionExportQuestionId(row.qid, selectedSessionDetail.problem_set_id)}</td>
+                        <td>{sessionExportQuestionDisplayIdByQid.get(String(row.qid)) || formatSessionExportQuestionId(row.qid, selectedSessionDetail.problem_set_id)}</td>
                         <td>{formatCompactExportText(row.prompt)}</td>
                         <td>{(row.rate * 100).toFixed(1)}%</td>
                       </tr>
@@ -3105,8 +3233,8 @@ export default function AdminConsoleResultsWorkspace(props) {
         ) : null}
 
         {sessionExportOptions.questions ? (
-          <section className="session-export-section">
-            <div className="session-export-section-title">Questions</div>
+          <section className="session-export-section session-export-section-page-break">
+            {renderSessionExportSectionHeading(sessionExportSectionOrder.questions, "Questions", "Question, answer, and class accuracy")}
             <table className="session-export-table session-export-question-table">
               <thead>
                 <tr>
@@ -3117,9 +3245,9 @@ export default function AdminConsoleResultsWorkspace(props) {
                 </tr>
               </thead>
               <tbody>
-                {sessionQuestionExportRows.map((row) => (
-                  <tr key={`session-export-question-${row.qid}`}>
-                    <td>{row.displayId || formatSessionExportQuestionId(row.qid, selectedSessionDetail.problem_set_id)}</td>
+                    {sessionQuestionExportRows.map((row) => (
+                      <tr key={`session-export-question-${row.qid}`}>
+                        <td>{row.displayId || formatSessionExportQuestionId(row.qid, selectedSessionDetail.problem_set_id)}</td>
                     <td>
                       <div className="session-export-question-text">{row.prompt || "Question"}</div>
                       {row.stemImages?.length ? (
@@ -3145,7 +3273,9 @@ export default function AdminConsoleResultsWorkspace(props) {
                         />
                       ) : null}
                     </td>
-                    <td>{(row.rate * 100).toFixed(1)}%</td>
+                    <td className={row.rate < sessionDetailPassRate ? "attempt-score-detail-below-pass" : ""}>
+                      {(row.rate * 100).toFixed(1)}%
+                    </td>
                   </tr>
                 ))}
                 {!sessionQuestionExportRows.length ? (
@@ -3159,34 +3289,45 @@ export default function AdminConsoleResultsWorkspace(props) {
         ) : null}
 
         {sessionExportOptions.studentRanking ? (
-          <section className="session-export-section">
-            <div className="session-export-section-title">Student Ranking</div>
+          <section className="session-export-section session-export-section-page-break">
+            {renderSessionExportSectionHeading(sessionExportSectionOrder.studentRanking, "Student Ranking", "Ranked by total score")}
             <table className="session-export-table session-export-ranking-table">
               <thead>
                 <tr>
                   <th>Rank</th>
                   <th>Student</th>
                   <th>Student No.</th>
+                  <th>Attempt Date &amp; Time</th>
                   <th>Total Score</th>
                   <th>Total %</th>
-                  {sessionDetailRankingSections.map((section) => (
-                    <th key={`session-export-ranking-head-${section.section}`}>{section.section}</th>
+                  {sessionExportRankingSections.map((section) => (
+                    <th key={`session-export-ranking-head-${section.section}`}>
+                      {isMockSessionDetailForExport
+                        ? getSectionLabelLines(section.section).map((line, index) => (
+                          <div key={`session-export-ranking-head-${section.section}-${index}`}>{line}</div>
+                        ))
+                        : section.section}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {sessionDetailStudentRankingRows.map((row) => {
                   const isImportedAttempt = isImportedSummaryAttempt(row.attempt);
+                  const sectionRates = sessionExportRankingSectionRatesByStudent?.get(String(row.student_id)) ?? row.sectionRates ?? {};
                   return (
                     <tr key={`session-export-ranking-${row.student_id}`}>
                       <td>{formatOrdinal(row.rank)}</td>
                       <td>{row.display_name}</td>
                       <td>{row.student_code || "—"}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>{formatCompactDateTime(row.attempt?.created_at) || "—"}</td>
                       <td>{isImportedAttempt ? "—" : `${row.totalCorrect}/${row.totalQuestions}`}</td>
-                      <td>{(row.totalRate * 100).toFixed(1)}%</td>
-                      {sessionDetailRankingSections.map((section) => (
+                      <td className={row.totalRate < sessionDetailPassRate ? "attempt-score-detail-below-pass" : ""}>
+                        {(row.totalRate * 100).toFixed(1)}%
+                      </td>
+                      {sessionExportRankingSections.map((section) => (
                         <td key={`session-export-ranking-${row.student_id}-${section.section}`}>
-                          {((row.sectionRates?.[section.section] ?? 0) * 100).toFixed(1)}%
+                          {((sectionRates?.[section.section] ?? 0) * 100).toFixed(1)}%
                         </td>
                       ))}
                     </tr>
@@ -3194,7 +3335,7 @@ export default function AdminConsoleResultsWorkspace(props) {
                 })}
                 {!sessionDetailStudentRankingRows.length ? (
                   <tr>
-                    <td colSpan={Math.max(5, 5 + sessionDetailRankingSections.length)}>No ranking data available.</td>
+                    <td colSpan={Math.max(6, 6 + sessionExportRankingSections.length)}>No ranking data available.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -3265,7 +3406,28 @@ export default function AdminConsoleResultsWorkspace(props) {
                   type="button"
                   onClick={openSessionExportModal}
                 >
-                  <span aria-hidden="true" style={{ marginRight: 6 }}>⎙</span>
+                  <span aria-hidden="true" className="session-export-pdf-icon" style={{ marginRight: 6 }}>
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                      <path
+                        d="M7 3.5h6.5L18.5 8v12.5H7z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M13.5 3.5V8H18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M9.2 15.7V11.1h1.7c1.2 0 1.9.6 1.9 1.6s-.7 1.6-1.9 1.6h-.6v1.4zM10.9 13c.5 0 .8-.2.8-.7s-.3-.7-.8-.7h-.6v1.4zM14.1 11.1h1.5c1.4 0 2.3.9 2.3 2.3s-.9 2.3-2.3 2.3h-1.5zm1.5 3.1c.7 0 1.1-.4 1.1-.8v-1.6c0-.5-.4-.8-1.1-.8h-.2v3.2zM18.5 11.1h2.3v1h-1.3v.8h1.2v1h-1.2v2h-1z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </span>
                   <span>Export PDF</span>
                 </button>
                 <button
@@ -3393,7 +3555,6 @@ export default function AdminConsoleResultsWorkspace(props) {
                     <th>Score</th>
                     <th>Rate</th>
                     <th>Status</th>
-                    <th>Attempt ID</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3413,13 +3574,12 @@ export default function AdminConsoleResultsWorkspace(props) {
                         <td>{isImportedAttempt ? "—" : `${attempt.correct}/${attempt.total}`}</td>
                         <td>{(getScoreRate(attempt) * 100).toFixed(1)}%</td>
                         <td className={passed ? "pf-pass" : "pf-fail"}>{passed ? "Pass" : "Fail"}</td>
-                        <td style={{ whiteSpace: "nowrap" }}>{attempt.id}</td>
                       </tr>
                     );
                   })}
                   {!sessionDetailDisplayAttempts.length ? (
                     <tr>
-                      <td colSpan={8}>No attempts yet.</td>
+                      <td colSpan={7}>No attempts yet.</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -3846,7 +4006,7 @@ export default function AdminConsoleResultsWorkspace(props) {
                     onChange={() => toggleSessionExportOption("studentRanking")}
                     disabled={sessionExportRankingDisabled}
                   />
-                  <span>Student Ranking</span>
+                  <span>Student Ranking and Result</span>
                 </label>
                 {sessionExportQuestionsDisabled ? (
                   <div className="admin-help">Questions export is unavailable because no question data is loaded for this session.</div>

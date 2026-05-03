@@ -895,7 +895,6 @@ export default function AdminConsoleDeferredFeatures({
                           <th>Score</th>
                           <th>Rate</th>
                           <th>Test</th>
-                          <th>Attempt ID</th>
                           <th>Detail CSV</th>
                           <th>Delete</th>
                         </tr>
@@ -927,11 +926,6 @@ export default function AdminConsoleDeferredFeatures({
                               <td>
                                 <button className="admin-model-results-link" type="button" onClick={() => openAttemptDetail(a)}>
                                   {a.test_version ?? ""}
-                                </button>
-                              </td>
-                              <td style={{ whiteSpace: "nowrap" }}>
-                                <button className="admin-model-results-link" type="button" onClick={() => openAttemptDetail(a)}>
-                                  {a.id}
                                 </button>
                               </td>
                               <td>
