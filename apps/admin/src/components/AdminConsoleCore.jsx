@@ -3885,6 +3885,31 @@ export default function AdminConsole({
   }, [dailySessions, tests]);
   const modelCategories = useMemo(() => buildCategories(modelTests, DEFAULT_MODEL_CATEGORY), [modelTests]);
 
+  const getModelSessionCategoryName = useCallback((session) => {
+    const explicit = String(session?.session_category ?? "").trim();
+    return explicit || DEFAULT_MODEL_CATEGORY;
+  }, []);
+
+  const buildModelSessionCategoryGroups = useCallback((sessions) => {
+    const grouped = new Map();
+    (sessions ?? []).forEach((session) => {
+      if (!session?.id) return;
+      const category = getModelSessionCategoryName(session);
+      if (!grouped.has(category)) grouped.set(category, []);
+      grouped.get(category).push(session);
+    });
+    return Array.from(grouped.entries())
+      .map(([name, sessionList]) => ({
+        name,
+        sessions: [...sessionList].sort((left, right) => {
+          const timeCompare = getSessionSortTime(right) - getSessionSortTime(left);
+          if (timeCompare !== 0) return timeCompare;
+          return compareSetIds(left.problem_set_id, right.problem_set_id);
+        }),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [getModelSessionCategoryName]);
+
   const testMetaByVersion = useMemo(() => {
     const map = {};
     (tests ?? []).forEach((t) => {
@@ -4226,15 +4251,7 @@ export default function AdminConsole({
     return buildDailySessionCategoryGroups(dailySessions);
   }, [buildDailySessionCategoryGroups, dailySessions]);
 
-  const modelResultCategories = useMemo(() => {
-    const resultVersions = new Set(
-      (studentModelAttempts ?? [])
-        .filter((attempt) => testMetaByVersion[attempt?.test_version]?.type === "mock")
-        .map((attempt) => attempt?.test_version)
-        .filter(Boolean)
-    );
-    return buildCategories((modelTests ?? []).filter((test) => resultVersions.has(test.version)), DEFAULT_MODEL_CATEGORY);
-  }, [modelTests, studentModelAttempts, testMetaByVersion]);
+  const modelResultCategories = useMemo(() => buildModelSessionCategoryGroups(modelSessions), [buildModelSessionCategoryGroups, modelSessions]);
 
   const dailyResultsImportCategories = useMemo(() => {
     const seen = new Set();

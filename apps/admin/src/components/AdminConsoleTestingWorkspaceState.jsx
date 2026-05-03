@@ -2208,18 +2208,32 @@ export function useTestingWorkspaceState({
 
   const dailyResultCategories = useMemo(() => buildDailySessionCategoryGroups(allDailySessions), [buildDailySessionCategoryGroups, allDailySessions]);
 
-  const modelResultCategories = useMemo(() => {
-    const resultVersions = new Set(
-      (attempts ?? [])
-        .filter((attempt) => {
-          const meta = testMetaByVersion[attempt?.test_version];
-          return meta?.type === "mock";
-        })
-        .map((attempt) => attempt?.test_version)
-        .filter(Boolean)
-    );
-    return buildCategories((modelTests ?? []).filter((test) => resultVersions.has(test.version)), DEFAULT_MODEL_CATEGORY);
-  }, [attempts, modelTests, testMetaByVersion]);
+  const getModelSessionCategoryName = useCallback((session) => {
+    const explicit = String(session?.session_category ?? "").trim();
+    return explicit || DEFAULT_MODEL_CATEGORY;
+  }, []);
+
+  const buildModelSessionCategoryGroups = useCallback((sessions) => {
+    const grouped = new Map();
+    (sessions ?? []).forEach((session) => {
+      if (!session?.id) return;
+      const category = getModelSessionCategoryName(session);
+      if (!grouped.has(category)) grouped.set(category, []);
+      grouped.get(category).push(session);
+    });
+    return Array.from(grouped.entries())
+      .map(([name, sessionList]) => ({
+        name,
+        sessions: [...sessionList].sort((left, right) => {
+          const timeCompare = getSessionSortTime(right) - getSessionSortTime(left);
+          if (timeCompare !== 0) return timeCompare;
+          return compareSetIds(left.problem_set_id, right.problem_set_id);
+        }),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [getModelSessionCategoryName]);
+
+  const modelResultCategories = useMemo(() => buildModelSessionCategoryGroups(allModelSessions), [allModelSessions, buildModelSessionCategoryGroups]);
 
   const modelTestsWithResults = useMemo(() => {
     const resultVersions = new Set(
@@ -3284,79 +3298,122 @@ export function useTestingWorkspaceState({
 
   const fetchAttempts = useCallback(async (options = {}) => {
     if (!supabase || !activeSchoolId) return;
-    const { viewMonthIso: explicitViewMonthIso } = options;
-    const viewMonthIso = explicitViewMonthIso !== undefined
+    const {
+      viewMonthIso: explicitViewMonthIso,
+      searchLatestForCategory = false,
+      preferredCategoryName = "",
+    } = options;
+    const preferredName = String(preferredCategoryName ?? "").trim();
+    const startMonthIso = explicitViewMonthIso !== undefined
       ? explicitViewMonthIso
-      : (attemptsViewMonthIsoRef.current ?? (() => {
+      : (() => {
           const now = new Date();
           return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-        })());
+        })();
 
-    const monthDate = viewMonthIso ? new Date(viewMonthIso) : null;
-    const nextMonthIso = monthDate && !Number.isNaN(monthDate.getTime())
-      ? new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + 1, 1)).toISOString()
-      : null;
+    const getPreviousMonthIso = (monthIso) => {
+      if (!monthIso) return "";
+      const date = new Date(monthIso);
+      if (Number.isNaN(date.getTime())) return "";
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1)).toISOString();
+    };
+
+    const getSessionCategoryName = (sessionRow) => {
+      if (activeTab === "daily") return getDailySessionCategoryName(sessionRow);
+      const category = String(testMetaByVersion[sessionRow?.problem_set_id]?.category ?? "").trim();
+      return category || DEFAULT_MODEL_CATEGORY;
+    };
+
+    const loadMonth = async (viewMonthIso) => {
+      const monthDate = viewMonthIso ? new Date(viewMonthIso) : null;
+      const nextMonthIso = monthDate && !Number.isNaN(monthDate.getTime())
+        ? new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + 1, 1)).toISOString()
+        : null;
+
+      const applyMonthSessionFilter = (q) => {
+        if (!viewMonthIso || !nextMonthIso) return q;
+        return q.or(
+          `and(starts_at.gte.${viewMonthIso},starts_at.lt.${nextMonthIso}),`
+          + `and(starts_at.is.null,created_at.gte.${viewMonthIso},created_at.lt.${nextMonthIso})`
+        );
+      };
+
+      const { data: sessionRows, error: sessionError } = await fetchAllPages((offset, pageSize) => {
+        let q = supabase
+          .from("test_sessions")
+          .select("id, problem_set_id, session_category, starts_at, created_at")
+          .eq("school_id", activeSchoolId);
+        q = applyMonthSessionFilter(q);
+        return q
+          .order("starts_at", { ascending: false, nullsFirst: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + pageSize - 1);
+      });
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      const sessionMap = new Map((sessionRows ?? []).map((row) => [row?.id, row]).filter(([id]) => Boolean(id)));
+      const sessionIds = Array.from(sessionMap.keys());
+
+      let attemptsData = [];
+      if (sessionIds.length) {
+        const { data, error } = await fetchAllPages((offset, pageSize) => (
+          supabase
+            .from("attempts")
+            .select("id, student_id, test_session_id, test_version, correct, total, score_rate, started_at, ended_at, created_at, answers_json")
+            .eq("school_id", activeSchoolId)
+            .in("test_session_id", sessionIds)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(offset, offset + pageSize - 1)
+        ));
+        if (error) throw error;
+        attemptsData = data ?? [];
+      }
+
+      const hasResultsForPreferredCategory = preferredName
+        ? attemptsData.some((attempt) => {
+            const session = sessionMap.get(attempt?.test_session_id);
+            return session ? getSessionCategoryName(session) === preferredName : false;
+          })
+        : attemptsData.length > 0;
+
+      return {
+        attemptsData,
+        viewMonthIso,
+        nextMonthIso,
+        monthDate,
+        hasResultsForPreferredCategory,
+      };
+    };
 
     setAttemptsRefreshing(true);
     setAttemptsMsg("Loading results...");
 
-    // Filter by the exam date (test_sessions.starts_at, or created_at when
-    // starts_at is null). This ensures CSV-imported attempts line up with the
-    // month of the test they represent, not the month they were imported.
-    const applyMonthSessionFilter = (q) => {
-      if (!viewMonthIso || !nextMonthIso) return q;
-      return q.or(
-        `and(starts_at.gte.${viewMonthIso},starts_at.lt.${nextMonthIso}),`
-        + `and(starts_at.is.null,created_at.gte.${viewMonthIso},created_at.lt.${nextMonthIso})`
-      );
-    };
+    let currentMonthIso = startMonthIso;
+    let loaded = null;
+    let safety = 0;
+    while (safety < 240) {
+      safety += 1;
+      loaded = await loadMonth(currentMonthIso);
+      if (!searchLatestForCategory || loaded.hasResultsForPreferredCategory) break;
+      const previousMonthIso = getPreviousMonthIso(currentMonthIso);
+      if (!previousMonthIso || previousMonthIso === currentMonthIso) break;
+      currentMonthIso = previousMonthIso;
+    }
 
-    const { data: sessionRows, error: sessionError } = await fetchAllPages((offset, pageSize) => {
-      let q = supabase
-        .from("test_sessions")
-        .select("id")
-        .eq("school_id", activeSchoolId);
-      q = applyMonthSessionFilter(q);
-      return q
-        .order("starts_at", { ascending: false, nullsFirst: false })
-        .order("id", { ascending: false })
-        .range(offset, offset + pageSize - 1);
-    });
-
-    if (sessionError) {
-      console.error("test_sessions fetch (for attempts range) error:", sessionError);
+    if (!loaded) {
       setAttempts([]);
-      setAttemptsMsg(`Load failed: ${sessionError.message}`);
-      setAttemptsLoaded(false);
+      setAttemptsMsg("No results.");
+      setAttemptsLoaded(true);
       setAttemptsRefreshing(false);
+      setHasNextMonthAttempts(false);
       return;
     }
 
-    const sessionIds = (sessionRows ?? []).map((row) => row?.id).filter(Boolean);
-
-    let attemptsData = [];
-    if (sessionIds.length) {
-      const { data, error } = await fetchAllPages((offset, pageSize) => (
-        supabase
-          .from("attempts")
-          .select("id, student_id, test_session_id, test_version, correct, total, score_rate, started_at, ended_at, created_at, answers_json")
-          .eq("school_id", activeSchoolId)
-          .in("test_session_id", sessionIds)
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
-          .range(offset, offset + pageSize - 1)
-      ));
-      if (error) {
-        console.error("attempts fetch error:", error);
-        setAttempts([]);
-        setAttemptsMsg(`Load failed: ${error.message}`);
-        setAttemptsLoaded(false);
-        setAttemptsRefreshing(false);
-        return;
-      }
-      attemptsData = data ?? [];
-    }
-
+    const { attemptsData, viewMonthIso, nextMonthIso, monthDate } = loaded;
     setAttempts(attemptsData);
     setAttemptsViewMonthIso(viewMonthIso ?? null);
     attemptsViewMonthIsoRef.current = viewMonthIso ?? null;
@@ -3381,7 +3438,7 @@ export function useTestingWorkspaceState({
     } else {
       setHasNextMonthAttempts(false);
     }
-  }, [supabase, activeSchoolId]);
+  }, [activeTab, activeSchoolId, fetchAllPages, getDailySessionCategoryName, supabase, testMetaByVersion]);
 
   const goToPreviousAttemptsMonth = useCallback(async () => {
     const current = attemptsViewMonthIsoRef.current;
@@ -5976,12 +6033,20 @@ export function useTestingWorkspaceState({
   // Load attempts when the results tab is active
   useEffect(() => {
     if (activeTab !== "model" && activeTab !== "daily") return;
-    if (attemptsLoaded) return;
     if (!supabase || !activeSchoolId) return;
+    if (activeTab === "daily" && dailySubTab !== "results") return;
+    if (activeTab === "model" && modelSubTab !== "results") return;
     const now = new Date();
     const currentMonthStartIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-    void fetchAttempts({ viewMonthIso: currentMonthStartIso });
-  }, [activeTab, attemptsLoaded, supabase, activeSchoolId, fetchAttempts]);
+    const preferredCategoryName = activeTab === "daily"
+      ? String(dailyResultsCategory ?? "").trim()
+      : String(modelResultsCategory ?? "").trim();
+    void fetchAttempts({
+      viewMonthIso: currentMonthStartIso,
+      searchLatestForCategory: true,
+      preferredCategoryName,
+    });
+  }, [activeTab, activeSchoolId, dailyResultsCategory, dailySubTab, fetchAttempts, modelResultsCategory, modelSubTab, supabase]);
 
   // Note: questions for attempts are loaded on-demand — when the user opens an
   // attempt detail modal (see AdminConsoleCore attempt-detail effect) or triggers
