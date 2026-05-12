@@ -1359,6 +1359,7 @@ export function useTestingWorkspaceState({
   const fetchTestsRequestRef = useRef(0);
   const fetchTestSessionsRequestRef = useRef(0);
   const fetchAttemptsRequestRef = useRef(0);
+  const resultsBootstrapRetryRef = useRef("");
   const [attemptsRefreshing, setAttemptsRefreshing] = useState(false);
   const [hasNextMonthAttempts, setHasNextMonthAttempts] = useState(false);
   const [examLinks, setExamLinks] = useState([]);
@@ -5953,6 +5954,66 @@ export function useTestingWorkspaceState({
     if (!supabase || examLinksLoaded) return;
     void fetchExamLinks();
   }, [examLinksLoaded, fetchExamLinks, supabase]);
+
+  useEffect(() => {
+    const dailyResultsActive = activeTab === "daily" && dailySubTab === "results";
+    const modelResultsActive = activeTab === "model" && modelSubTab === "results";
+    if (!supabase || !activeSchoolId || (!dailyResultsActive && !modelResultsActive)) {
+      return;
+    }
+
+    const categoryCount = dailyResultsActive ? dailyResultCategories.length : modelResultCategories.length;
+    if (categoryCount > 0) {
+      resultsBootstrapRetryRef.current = "";
+      return;
+    }
+
+    const retryKey = [
+      activeSchoolId,
+      activeTab,
+      dailySubTab,
+      modelSubTab,
+      session?.user?.id ?? "",
+    ].join(":");
+    if (resultsBootstrapRetryRef.current === retryKey) {
+      return;
+    }
+    resultsBootstrapRetryRef.current = retryKey;
+
+    const now = new Date();
+    const currentMonthStartIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+    const preferredCategoryName = dailyResultsActive
+      ? String(selectedDailyCategory?.name ?? dailyResultsCategory ?? "").trim()
+      : String(selectedModelCategory?.name ?? modelResultsCategory ?? "").trim();
+
+    const retryBootstrap = async () => {
+      await fetchTests();
+      await fetchTestSessions();
+      await fetchAttempts({
+        viewMonthIso: currentMonthStartIso,
+        searchLatestForCategory: true,
+        preferredCategoryName,
+      });
+    };
+
+    void retryBootstrap();
+  }, [
+    activeSchoolId,
+    activeTab,
+    dailyResultCategories.length,
+    dailyResultsCategory,
+    dailySubTab,
+    fetchAttempts,
+    fetchTestSessions,
+    fetchTests,
+    modelResultCategories.length,
+    modelResultsCategory,
+    modelSubTab,
+    selectedDailyCategory?.name,
+    selectedModelCategory?.name,
+    session?.user?.id,
+    supabase,
+  ]);
 
   // Validate selected category against available categories
   // but don't auto-select - user must explicitly choose

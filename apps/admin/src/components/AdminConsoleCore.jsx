@@ -118,6 +118,15 @@ function isMissingProfilesColumnError(error, columnName) {
   const text = `${error?.message ?? ""} ${error?.details ?? ""} ${error?.hint ?? ""}`;
   return text.includes(columnName) && /column/i.test(text) && (/does not exist/i.test(text) || /schema cache/i.test(text));
 }
+
+function readStoredAdminSchoolScope() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(ADMIN_SCHOOL_SCOPE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
 const CERTIFICATE_STATUS_OPTIONS = [
   { value: "ongoing", label: "Ongoing" },
   { value: "completed", label: "Completed" }
@@ -3197,11 +3206,17 @@ export default function AdminConsole({
     ? readAdminConsoleViewState(regularAdminViewStateStorageKey)
     : null;
   const regularAdminDataUserId = managedSession?.user?.id ?? managedProfile?.id ?? "";
-  const regularAdminDataSchoolId = managedProfile?.school_id ?? forcedSchoolId ?? null;
+  const storedRegularAdminSchoolScopeId = shouldPersistRegularAdminViewState
+    ? readStoredAdminSchoolScope()
+    : null;
+  const regularAdminBootstrapSchoolId = forcedSchoolId
+    ?? storedRegularAdminSchoolScopeId
+    ?? managedProfile?.school_id
+    ?? null;
   const storedRegularAdminData = shouldPersistRegularAdminViewState
     ? readAdminConsoleDataCache(
         regularAdminDataUserId,
-        regularAdminDataSchoolId
+        regularAdminBootstrapSchoolId
       )
     : null;
   const [session, setSession] = useState(null);
@@ -3210,7 +3225,10 @@ export default function AdminConsole({
   const [authReady, setAuthReady] = useState(isManagedAuth);
   const [profileLoading, setProfileLoading] = useState(false);
   const [schoolAssignments, setSchoolAssignments] = useState([]);
-  const [schoolScopeId, setSchoolScopeId] = useState(null);
+  const [schoolScopeId, setSchoolScopeId] = useState(() => (
+    forcedSchoolId ? null : storedRegularAdminSchoolScopeId
+  ));
+  const regularAdminDataSchoolId = forcedSchoolId ?? schoolScopeId ?? managedProfile?.school_id ?? null;
   // Keep testing data live-loaded so school admins do not bootstrap stale
   // result/session state from a previous scoped console visit.
   const [attempts, setAttempts] = useState([]);
@@ -5555,10 +5573,89 @@ export default function AdminConsole({
     if (!isManagedAuth) return;
     setSession(managedSession ?? null);
     setProfile(managedProfile ?? null);
-    setAuthReady(true);
     setProfileLoading(false);
     setLoginMsg("");
   }, [isManagedAuth, managedProfile, managedSession]);
+
+  useEffect(() => {
+    if (!isManagedAuth) {
+      return;
+    }
+    if (!supabase) {
+      setAuthReady(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function syncManagedSession() {
+      setAuthReady(false);
+
+      try {
+        if (!managedSession?.access_token || !managedSession?.refresh_token) {
+          const { error } = await supabase.auth.signOut({ scope: "local" });
+          if (error) {
+            logAdminRequestFailure("Managed admin local signout failed", error, {
+              userId: managedSession?.user?.id ?? null,
+            });
+          }
+          syncAdminAuthCookie(null);
+          if (!cancelled) {
+            setSession(null);
+          }
+          return;
+        }
+
+        const { data: existingSessionData, error: existingSessionError } = await supabase.auth.getSession();
+        if (existingSessionError) {
+          logAdminRequestFailure("Managed admin getSession failed", existingSessionError, {
+            userId: managedSession.user?.id ?? null,
+          });
+        }
+
+        const existingAccessToken = existingSessionData?.session?.access_token ?? null;
+        if (existingAccessToken !== managedSession.access_token) {
+          const { error } = await supabase.auth.setSession({
+            access_token: managedSession.access_token,
+            refresh_token: managedSession.refresh_token,
+          });
+          if (error) {
+            throw error;
+          }
+        }
+
+        syncAdminAuthCookie(managedSession);
+        if (!cancelled) {
+          setSession(managedSession);
+          setLoginMsg("");
+        }
+      } catch (error) {
+        logAdminRequestFailure("Managed admin session sync failed", error, {
+          userId: managedSession?.user?.id ?? null,
+        });
+        if (!cancelled) {
+          setLoginMsg(error instanceof Error ? error.message : "Failed to restore admin session.");
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthReady(true);
+        }
+      }
+    }
+
+    void syncManagedSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isManagedAuth,
+    managedSession,
+    managedSession?.access_token,
+    managedSession?.refresh_token,
+    managedSession?.user?.id,
+    supabase,
+  ]);
 
   useEffect(() => {
     if (isManagedAuth) {
