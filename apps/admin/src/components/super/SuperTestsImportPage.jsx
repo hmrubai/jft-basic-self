@@ -1135,6 +1135,8 @@ export default function SuperTestsImportPage() {
   }
 
   async function handleUploadConflictChoice(duplicateStrategy) {
+    if (saving) return;
+
     if (duplicateStrategy === "cancel") {
       pendingCreateUploadRef.current = null;
       setUploadConflict({ open: false, duplicateSetIds: [], allSetIds: [] });
@@ -1148,6 +1150,7 @@ export default function SuperTestsImportPage() {
     }
 
     pendingCreateUploadRef.current = null;
+    setUploadConflict({ open: false, duplicateSetIds: [], allSetIds: [] });
     setSaving(true);
     try {
       const result = await runQuestionSetUpload({
@@ -1161,7 +1164,6 @@ export default function SuperTestsImportPage() {
       setValidation(null);
       setValidationMsg("");
       setUploadProgress({ phase: "", uploaded: 0, total: 0 });
-      setUploadConflict({ open: false, duplicateSetIds: [], allSetIds: [] });
       const createdCount = result?.question_sets?.length ?? 0;
       const skippedCount = result?.skipped_set_ids?.length ?? 0;
       const updatedCount = result?.updated_set_ids?.length ?? 0;
