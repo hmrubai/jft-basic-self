@@ -1617,7 +1617,6 @@ export default function AdminConsoleResultsWorkspace(props) {
   const fetchSessionDetailRef = useRef(fetchSessionDetail);
   const runSearchRef = useRef(runSearch);
   const selectedSessionDetailRef = useRef(selectedSessionDetail);
-  const unscopedSupabaseRef = useRef(null);
 
   useEffect(() => {
     setSessionExportModalOpen(false);
@@ -1965,16 +1964,8 @@ export default function AdminConsoleResultsWorkspace(props) {
     return { ok: true, updatedCount: attemptUpdates.length };
   }, [supabase]);
 
-  const getUnscopedSupabaseClient = useCallback(async () => {
-    if (unscopedSupabaseRef.current) return unscopedSupabaseRef.current;
-    const { createAdminSupabaseClient } = await import("../lib/adminSupabase");
-    const client = createAdminSupabaseClient();
-    unscopedSupabaseRef.current = client;
-    return client;
-  }, []);
-
   const persistQuestionAnswerChanges = useCallback(async (questionUpdates, affectedQuestionData = null) => {
-    if (!questionUpdates?.length) return { ok: true, updatedCount: 0, usedUnscopedClient: false };
+    if (!questionUpdates?.length) return { ok: true, updatedCount: 0 };
 
     const questionsById = new Map();
     (previewQuestions ?? []).forEach((question) => {
@@ -2034,27 +2025,12 @@ export default function AdminConsoleResultsWorkspace(props) {
       if (!result.matched) missingUpdates.push(update);
     }
 
-    let unresolvedUpdates = missingUpdates;
-    let usedUnscopedClient = false;
-    if (missingUpdates.length && role === "super_admin") {
-      const unscopedClient = await getUnscopedSupabaseClient();
-      unresolvedUpdates = [];
-      for (const update of missingUpdates) {
-        const result = await persistWithClient(unscopedClient, update);
-        if (!result.ok) return result;
-        if (!result.matched) unresolvedUpdates.push(update);
-      }
-      usedUnscopedClient = missingUpdates.length !== unresolvedUpdates.length;
-    }
-
-    if (unresolvedUpdates.length) {
-      const sourceSetNote = role === "super_admin"
-        ? "Those rows are visible in this scope, but were still not writable from the database."
-        : "This usually happens when the question set is visible in your school scope but the source rows are owned outside that scope.";
+    if (missingUpdates.length) {
+      const sourceSetNote = "This usually happens when the question set is visible in your school scope but the source rows are owned outside that scope.";
       return {
         ok: false,
         error: new Error(
-          `Could not save ${unresolvedUpdates.length} answer change${unresolvedUpdates.length === 1 ? "" : "s"}. ${sourceSetNote}`
+          `Could not save ${missingUpdates.length} answer change${missingUpdates.length === 1 ? "" : "s"}. ${sourceSetNote}`
         ),
       };
     }
@@ -2062,9 +2038,8 @@ export default function AdminConsoleResultsWorkspace(props) {
     return {
       ok: true,
       updatedCount: questionUpdates.length,
-      usedUnscopedClient,
     };
-  }, [getUnscopedSupabaseClient, previewQuestions, role, supabase]);
+  }, [previewQuestions, supabase]);
 
   const buildDetailedAttemptRows = (answersJson, questionsList) => {
     const answers = answersJson ?? {};
@@ -2591,8 +2566,8 @@ export default function AdminConsoleResultsWorkspace(props) {
 
     setPreviewChangeMsg(
       impact.ok && impact.attemptUpdates.length > 0
-        ? `Saved ${edits.length} answer${edits.length > 1 ? "s" : ""} and updated ${impact.attemptUpdates.length} score${impact.attemptUpdates.length === 1 ? "" : "s"}${impact.linkedVersionCount > 0 ? ` across ${impact.linkedVersionCount} linked session version${impact.linkedVersionCount === 1 ? "" : "s"}` : ""}.${persistQuestionResult.usedUnscopedClient ? " Saved with superadmin global scope." : ""}${impact.warning ? ` ${impact.warning}` : ""}`
-        : `Saved ${edits.length} answer${edits.length > 1 ? "s" : ""}.${persistQuestionResult.usedUnscopedClient ? " Saved with superadmin global scope." : ""}${impact.warning ? ` ${impact.warning}` : ""}`
+        ? `Saved ${edits.length} answer${edits.length > 1 ? "s" : ""} and updated ${impact.attemptUpdates.length} score${impact.attemptUpdates.length === 1 ? "" : "s"}${impact.linkedVersionCount > 0 ? ` across ${impact.linkedVersionCount} linked session version${impact.linkedVersionCount === 1 ? "" : "s"}` : ""}.${impact.warning ? ` ${impact.warning}` : ""}`
+        : `Saved ${edits.length} answer${edits.length > 1 ? "s" : ""}.${impact.warning ? ` ${impact.warning}` : ""}`
     );
     setPendingAnswerEdits({});
     setPendingAnswerEditModes({});
