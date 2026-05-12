@@ -181,23 +181,24 @@ export default function AdminConsoleDeferredFeatures({
       && typeof openAttemptDetail === "function"
       && attemptCanOpenDetail(attempt)
   );
-  const activeResultsMatrix = resultContext.type === "daily" ? dailyResultsMatrix : modelResultsMatrix;
-  const activeResultCategories = resultContext.type === "daily" ? dailyResultCategories : modelResultCategories;
+  const resultType = String(resultContext?.type ?? "").trim();
+  const activeResultsMatrix = resultType === "daily" ? dailyResultsMatrix : modelResultsMatrix;
+  const activeResultCategories = resultType === "daily" ? dailyResultCategories : modelResultCategories;
   const initialTestingDataReady = Boolean(testsLoaded) && Boolean(testSessionsLoaded);
   const shouldShowCategoriesLoading = Boolean(
-    resultContext.type
-    && (resultContext.type === "daily" || resultContext.type === "mock")
+    resultType
+    && (resultType === "daily" || resultType === "mock")
     && !initialTestingDataReady
     && (activeResultCategories?.length ?? 0) === 0
   );
   const shouldShowNoCategoriesMsg = Boolean(
-    resultContext.type
-    && (resultContext.type === "daily" || resultContext.type === "mock")
+    resultType
+    && (resultType === "daily" || resultType === "mock")
     && initialTestingDataReady
     && (activeResultCategories?.length ?? 0) === 0
   );
   const shouldShowResultsEmptyState = Boolean(
-    resultContext.type
+    resultType
     && !attemptsRefreshing
     && !attemptsMsg
     && (activeResultCategories?.length ?? 0) > 0

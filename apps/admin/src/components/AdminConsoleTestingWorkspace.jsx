@@ -115,6 +115,13 @@ export default function AdminConsoleTestingWorkspace() {
 
   // Create resultContext for the results workspace
   const resultContext = (() => {
+    const previewVersion = String(hookState.previewSession?.problem_set_id || hookState.previewTest || "").trim();
+    const previewType = previewVersion
+      ? (hookState.modelTests.some((test) => test?.version === previewVersion)
+          ? "mock"
+          : (hookState.dailyTests.some((test) => test?.version === previewVersion) ? "daily" : ""))
+      : "";
+
     if (activeTab === "model" && modelSubTab === "results") {
       return { type: "mock", title: "Model Test Results", tests: hookState.modelTests };
     }
@@ -125,6 +132,12 @@ export default function AdminConsoleTestingWorkspace() {
       return { type: "mock", title: "Model Test Results", tests: hookState.modelTests };
     }
     if (hookState.sessionDetail?.type === "daily" && hookState.sessionDetail?.sessionId) {
+      return { type: "daily", title: "Daily Test Results", tests: hookState.dailyTests };
+    }
+    if (hookState.previewOpen && previewType === "mock") {
+      return { type: "mock", title: "Model Test Results", tests: hookState.modelTests };
+    }
+    if (hookState.previewOpen && previewType === "daily") {
       return { type: "daily", title: "Daily Test Results", tests: hookState.dailyTests };
     }
     return null;
@@ -161,10 +174,13 @@ export default function AdminConsoleTestingWorkspace() {
   };
 
   const resultsWorkspaceActive = Boolean(
-    (modelSubTab === "results" && activeTab === "model")
-    || (dailySubTab === "results" && activeTab === "daily")
-    || hookState.previewOpen
-    || hookState.sessionDetail?.sessionId
+    resultContext
+    && (
+      (modelSubTab === "results" && activeTab === "model")
+      || (dailySubTab === "results" && activeTab === "daily")
+      || hookState.previewOpen
+      || hookState.sessionDetail?.sessionId
+    )
   );
 
   return (

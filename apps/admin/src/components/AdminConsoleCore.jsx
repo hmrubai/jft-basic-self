@@ -1699,6 +1699,10 @@ function getVocabularyTypeLabel(code) {
   return "Noun";
 }
 
+function sanitizeTestList(list) {
+  return (Array.isArray(list) ? list : []).filter((test) => test && typeof test === "object");
+}
+
 function getSessionSortTime(session) {
   return new Date(session?.starts_at || session?.created_at || 0).getTime();
 }
@@ -3364,7 +3368,7 @@ export default function AdminConsole({
   });
   const [csvMsg, setCsvMsg] = useState("");
   const [inviteResults, setInviteResults] = useState([]);
-  const [tests, setTests] = useState([]);
+  const [tests, setTests] = useState(() => sanitizeTestList([]));
   const [testsMsg, setTestsMsg] = useState("");
   const [testSessions, setTestSessions] = useState([]);
   const [testSessionsMsg, setTestSessionsMsg] = useState("");
@@ -3735,8 +3739,8 @@ export default function AdminConsole({
     }
   }, [selectedStudent, studentInfoOpen]);
 
-  const modelTests = useMemo(() => tests.filter((t) => t.type === "mock"), [tests]);
-  const dailyTests = useMemo(() => tests.filter((t) => t.type === "daily"), [tests]);
+  const modelTests = useMemo(() => sanitizeTestList(tests).filter((t) => t.type === "mock"), [tests]);
+  const dailyTests = useMemo(() => sanitizeTestList(tests).filter((t) => t.type === "daily"), [tests]);
   const dailyQuestionSets = useMemo(
     () => dailyTests.filter((t) => !isGeneratedDailySessionVersion(t.version)),
     [dailyTests]
@@ -6513,6 +6517,14 @@ export default function AdminConsole({
     if (error) throw new Error(`${table}: ${error.message}`);
   }
 
+  const renameVersionReferenceTargets = [
+    ["questions", "test_version"],
+    ["test_assets", "test_version"],
+    ["test_sessions", "problem_set_id"],
+    ["attempts", "test_version"],
+    ["exam_links", "test_version"],
+  ];
+
   async function saveTestEdits(categoryOptions) {
     if (!editingTestForm.id) return;
     setEditingTestMsg("Saving...");
@@ -6554,32 +6566,76 @@ export default function AdminConsole({
       }
     }
 
-    const updatePayload = {
-      title: nextTitle,
-      pass_rate: passRate,
-      is_public: editingTestForm.is_public,
-      updated_at: new Date().toISOString()
-    };
+    const nowIso = new Date().toISOString();
     if (nextVersion !== editingTestForm.originalVersion) {
-      updatePayload.version = nextVersion;
-    }
+      const { data: currentTestRow, error: currentTestErr } = await supabase
+        .from("tests")
+        .select("id, created_at, type")
+        .eq("id", editingTestForm.id)
+        .maybeSingle();
+      if (currentTestErr || !currentTestRow?.id) {
+        setEditingTestMsg(`Load failed: ${currentTestErr?.message || "Question set was not found."}`);
+        return;
+      }
 
-    const { error: updateErr } = await supabase.from("tests").update(updatePayload).eq("id", editingTestForm.id);
-    if (updateErr) {
-      setEditingTestMsg(`Save failed: ${updateErr.message}`);
-      return;
-    }
+      const { error: insertErr } = await supabase
+        .from("tests")
+        .insert({
+          version: nextVersion,
+          title: nextTitle,
+          type: currentTestRow.type || editingTestForm.type || "mock",
+          pass_rate: passRate,
+          is_public: editingTestForm.is_public,
+          created_at: currentTestRow.created_at ?? undefined,
+          updated_at: nowIso,
+        });
+      if (insertErr) {
+        setEditingTestMsg(normalizeLegacyTestErrorMessage(insertErr, "create"));
+        return;
+      }
 
-    if (nextVersion !== editingTestForm.originalVersion) {
+      const updatedTargets = [];
       try {
-        await updateVersionInTable("questions", "test_version", editingTestForm.originalVersion, nextVersion);
-        await updateVersionInTable("attempts", "test_version", editingTestForm.originalVersion, nextVersion);
-        await updateVersionInTable("test_sessions", "problem_set_id", editingTestForm.originalVersion, nextVersion);
-        await updateVersionInTable("exam_links", "test_version", editingTestForm.originalVersion, nextVersion);
-        await updateVersionInTable("test_assets", "test_version", editingTestForm.originalVersion, nextVersion);
+        for (const [table, column] of renameVersionReferenceTargets) {
+          await updateVersionInTable(table, column, editingTestForm.originalVersion, nextVersion);
+          updatedTargets.push([table, column]);
+        }
+        const { error: deleteOldErr } = await supabase
+          .from("tests")
+          .delete()
+          .eq("id", editingTestForm.id);
+        if (deleteOldErr) {
+          throw new Error(`tests: ${deleteOldErr.message}`);
+        }
       } catch (err) {
         console.error("rename error:", err);
-        setEditingTestMsg(`Saved, but rename failed: ${err.message}`);
+        for (let index = updatedTargets.length - 1; index >= 0; index -= 1) {
+          const [table, column] = updatedTargets[index];
+          try {
+            await updateVersionInTable(table, column, nextVersion, editingTestForm.originalVersion);
+          } catch (rollbackErr) {
+            console.error("rename rollback error:", rollbackErr);
+          }
+        }
+        try {
+          await supabase.from("tests").delete().eq("version", nextVersion);
+        } catch (rollbackDeleteErr) {
+          console.error("rename cleanup error:", rollbackDeleteErr);
+        }
+        setEditingTestMsg(`Rename failed: ${err.message}`);
+        return;
+      }
+    } else {
+      const updatePayload = {
+        title: nextTitle,
+        pass_rate: passRate,
+        is_public: editingTestForm.is_public,
+        updated_at: nowIso,
+      };
+      const { error: updateErr } = await supabase.from("tests").update(updatePayload).eq("id", editingTestForm.id);
+      if (updateErr) {
+        setEditingTestMsg(normalizeLegacyTestErrorMessage(updateErr, "update"));
+        return;
       }
     }
 
@@ -8152,21 +8208,22 @@ function openDailyRecordModal(record = null, recordDate = "") {
   }
 
   async function seedModelCategory(list) {
-    if (modelCategorySeededRef.current) return list;
-    const mockTests = (list ?? []).filter((t) => t.type === "mock");
+    if (modelCategorySeededRef.current) return sanitizeTestList(list);
+    const safeList = sanitizeTestList(list);
+    const mockTests = safeList.filter((t) => t.type === "mock");
     if (!mockTests.length) {
       modelCategorySeededRef.current = true;
-      return list;
+      return safeList;
     }
     const shouldSeed = mockTests.every((t) => !String(t.title ?? "").trim());
     if (!shouldSeed) {
       modelCategorySeededRef.current = true;
-      return list;
+      return safeList;
     }
     const ids = mockTests.map((t) => t.id).filter(Boolean);
     if (!ids.length) {
       modelCategorySeededRef.current = true;
-      return list;
+      return safeList;
     }
     const { error } = await supabase
       .from("tests")
@@ -8175,18 +8232,19 @@ function openDailyRecordModal(record = null, recordDate = "") {
     if (error) {
       console.error("model category seed error:", error);
       modelCategorySeededRef.current = true;
-      return list;
+      return safeList;
     }
     modelCategorySeededRef.current = true;
-    return list.map((t) => (t.type === "mock" ? { ...t, title: DEFAULT_MODEL_CATEGORY } : t));
+    return safeList.map((t) => (t.type === "mock" ? { ...t, title: DEFAULT_MODEL_CATEGORY } : t));
   }
 
   async function attachGeneratedDailySourceSetIds(list) {
-    const generatedVersions = (list ?? [])
+    const safeList = sanitizeTestList(list);
+    const generatedVersions = safeList
       .filter((test) => test.type === "daily" && isGeneratedDailySessionVersion(test.version))
       .map((test) => test.version)
       .filter(Boolean);
-    if (!generatedVersions.length) return list;
+    if (!generatedVersions.length) return safeList;
 
     const { data, error } = await supabase
       .from("questions")
@@ -8197,7 +8255,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
 
     if (error) {
       console.error("generated daily source lookup error:", error);
-      return list;
+      return safeList;
     }
 
     const sourceMap = {};
@@ -8219,7 +8277,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
       });
     });
 
-    return (list ?? []).map((test) => (
+    return safeList.map((test) => (
       sourceMap[test.version]?.length
         ? { ...test, source_set_ids: sourceMap[test.version] }
         : test
@@ -8288,7 +8346,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
       setTestsLoaded(false);
       return;
     }
-    const list = data ?? [];
+    const list = sanitizeTestList(data);
     const counts = await fetchQuestionCounts(supabase, list.map((t) => t.version));
     const withCounts = list.map((t) => ({
       ...t,
