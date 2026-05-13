@@ -5774,7 +5774,12 @@ export default function AdminConsole({
       if (loginValidationInFlightRef.current && nextSession) {
         return;
       }
-      setSession(nextSession ?? null);
+      setSession((currentSession) => {
+        if (event === "TOKEN_REFRESHED" && currentSession?.user?.id === nextSession?.user?.id) {
+          return currentSession;
+        }
+        return nextSession ?? null;
+      });
       setAuthReady(true);
     });
     return () => {
