@@ -242,6 +242,15 @@ export default function AdminConsoleTestingTabs({
     );
   }
 
+  const isModelUploadBusy =
+    assetUploadMsg.startsWith("Uploading...")
+    || assetUploadMsg.endsWith("Importing questions...")
+    || assetUploadMsg.endsWith("Refreshing list...");
+  const isDailyUploadBusy =
+    dailyUploadMsg.startsWith("Uploading...")
+    || dailyUploadMsg.endsWith("Importing questions...")
+    || dailyUploadMsg.endsWith("Refreshing list...");
+
   const [studentAudienceSearch, setStudentAudienceSearch] = useState("");
   const shouldLoadAudienceStudents = Boolean(
     (editingSessionId && editingSessionForm?.audience_mode !== "all")
@@ -1430,33 +1439,42 @@ export default function AdminConsoleTestingTabs({
                           ) : null}
                         </div>
                         <div className="upload-question-actions">
-                          <button className="btn btn-primary admin-upload-cta-btn" type="button" onClick={uploadAssets}>
-                            <svg viewBox="0 0 20 20" aria-hidden="true">
-                              <path
-                                d="M10 13V4.5"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                              />
-                              <path
-                                d="M6.75 7.75 10 4.5l3.25 3.25"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M4.5 14.5v1h11v-1"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            Upload & Register Set
+                          <button
+                            className="btn btn-primary admin-upload-cta-btn"
+                            type="button"
+                            onClick={uploadAssets}
+                            disabled={isModelUploadBusy}
+                          >
+                            {isModelUploadBusy ? (
+                              <span className="attendance-import-status-spinner admin-loading-spinner upload-question-submit-spinner" aria-hidden="true" />
+                            ) : (
+                              <svg viewBox="0 0 20 20" aria-hidden="true">
+                                <path
+                                  d="M10 13V4.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                />
+                                <path
+                                  d="M6.75 7.75 10 4.5l3.25 3.25"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M4.5 14.5v1h11v-1"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                            {isModelUploadBusy ? "Uploading..." : "Upload & Register Set"}
                           </button>
                         </div>
                       </div>
@@ -2818,33 +2836,42 @@ export default function AdminConsoleTestingTabs({
                           ) : null}
                         </div>
                         <div className="upload-question-actions">
-                          <button className="btn btn-primary admin-upload-cta-btn" type="button" onClick={uploadDailyAssets}>
-                            <svg viewBox="0 0 20 20" aria-hidden="true">
-                              <path
-                                d="M10 13V4.5"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                              />
-                              <path
-                                d="M6.75 7.75 10 4.5l3.25 3.25"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M4.5 14.5v1h11v-1"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            Upload & Register Daily Test
+                          <button
+                            className="btn btn-primary admin-upload-cta-btn"
+                            type="button"
+                            onClick={uploadDailyAssets}
+                            disabled={isDailyUploadBusy}
+                          >
+                            {isDailyUploadBusy ? (
+                              <span className="attendance-import-status-spinner admin-loading-spinner upload-question-submit-spinner" aria-hidden="true" />
+                            ) : (
+                              <svg viewBox="0 0 20 20" aria-hidden="true">
+                                <path
+                                  d="M10 13V4.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                />
+                                <path
+                                  d="M6.75 7.75 10 4.5l3.25 3.25"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M4.5 14.5v1h11v-1"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                            {isDailyUploadBusy ? "Uploading..." : "Upload & Register Daily Test"}
                           </button>
                         </div>
                       </div>

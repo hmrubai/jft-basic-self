@@ -1836,6 +1836,18 @@ export default function AdminConsoleResultsWorkspace(props) {
     });
   }, []);
 
+  const preservePreviewScrollPositionAsync = useCallback(async (callback) => {
+    const container = previewBodyRef.current;
+    const scrollTop = container?.scrollTop ?? 0;
+    await callback();
+    if (!container) return;
+    requestAnimationFrame(() => {
+      if (previewBodyRef.current) {
+        previewBodyRef.current.scrollTop = scrollTop;
+      }
+    });
+  }, []);
+
   const buildAttemptScorePreview = useCallback((attempt, questionsList) => (
     buildAttemptScorePreviewFromQuestions(attempt, questionsList, getQuestionSectionLabel)
   ), [getQuestionSectionLabel]);
@@ -2743,9 +2755,10 @@ export default function AdminConsoleResultsWorkspace(props) {
         </div>
         {prompt ? <div style={{ marginTop: 6, whiteSpace: question.type === "daily" ? "pre-wrap" : "normal" }}>{prompt}</div> : null}
         {question.type === "daily" && stemExtra ? (
-          <div style={{ marginTop: 6, fontSize: 13, color: "#333333", whiteSpace: "pre-wrap" }}>
-            {stemExtra}
-          </div>
+          <div
+            style={{ marginTop: 6, fontSize: 13, color: "#333333", whiteSpace: "pre-wrap" }}
+            dangerouslySetInnerHTML={{ __html: renderUnderlinesHtml(stemExtra) }}
+          />
         ) : null}
         {stemText && !useSpeakerLayout ? (
           <div
@@ -2883,12 +2896,15 @@ export default function AdminConsoleResultsWorkspace(props) {
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <select
               value={previewReplacementDrafts[question.dbId] ?? ""}
-              onChange={(e) =>
-                setPreviewReplacementDrafts((current) => ({
-                  ...current,
-                  [question.dbId]: e.target.value,
-                }))
-              }
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                preservePreviewScrollPosition(() => {
+                  setPreviewReplacementDrafts((current) => ({
+                    ...current,
+                    [question.dbId]: nextValue,
+                  }));
+                });
+              }}
               style={{ minWidth: 260 }}
             >
               <option value="">Replace with...</option>
@@ -2914,7 +2930,9 @@ export default function AdminConsoleResultsWorkspace(props) {
               className="btn"
               type="button"
               disabled={previewReplacementSavingId === question.dbId}
-              onClick={() => replacePreviewQuestion(question.dbId)}
+              onClick={() => {
+                void preservePreviewScrollPositionAsync(() => replacePreviewQuestion(question.dbId));
+              }}
             >
               {previewReplacementSavingId === question.dbId ? "Replacing..." : "Replace Question"}
             </button>
@@ -3224,7 +3242,10 @@ export default function AdminConsoleResultsWorkspace(props) {
                       <tr key={`session-export-question-${row.qid}`}>
                         <td>{row.displayId || formatSessionExportQuestionId(row.qid, selectedSessionDetail.problem_set_id)}</td>
                     <td>
-                      <div className="session-export-question-text">{row.prompt || "Question"}</div>
+                      <div
+                        className="session-export-question-text"
+                        dangerouslySetInnerHTML={{ __html: renderUnderlinesHtml(row.prompt || "Question") }}
+                      />
                       {row.stemImages?.length ? (
                         <div className="session-export-image-strip">
                           {row.stemImages.map((imageSrc, index) => (

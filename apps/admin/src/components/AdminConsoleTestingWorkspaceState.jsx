@@ -38,36 +38,35 @@ function isMissingColumnError(error, columnName) {
   return message.includes(columnName) && message.toLowerCase().includes("does not exist");
 }
 
-async function fetchQuestionsForVersionWithFallback(supabaseClient, version) {
-  let result = await supabaseClient
-    .from("questions")
-    .select(QUESTION_SELECT_WITH_MEDIA)
-    .eq("test_version", version)
-    .order("order_index", { ascending: true });
-  if (result.error && (isMissingColumnError(result.error, "media_file") || isMissingColumnError(result.error, "media_type"))) {
-    result = await supabaseClient
+async function fetchQuestionsForVersionWithFallback(supabaseClient, version, schoolId = "") {
+  const buildQuery = (selectFields) => {
+    return supabaseClient
       .from("questions")
-      .select(QUESTION_SELECT_BASE)
+      .select(selectFields)
       .eq("test_version", version)
       .order("order_index", { ascending: true });
+  };
+
+  let result = await buildQuery(QUESTION_SELECT_WITH_MEDIA);
+  if (result.error && (isMissingColumnError(result.error, "media_file") || isMissingColumnError(result.error, "media_type"))) {
+    result = await buildQuery(QUESTION_SELECT_BASE);
   }
   return result;
 }
 
-async function fetchQuestionsForVersionsWithFallback(supabaseClient, versions) {
-  let result = await supabaseClient
-    .from("questions")
-    .select(QUESTION_SELECT_WITH_MEDIA)
-    .in("test_version", versions)
-    .order("test_version", { ascending: true })
-    .order("order_index", { ascending: true });
-  if (result.error && (isMissingColumnError(result.error, "media_file") || isMissingColumnError(result.error, "media_type"))) {
-    result = await supabaseClient
+async function fetchQuestionsForVersionsWithFallback(supabaseClient, versions, schoolId = "") {
+  const buildQuery = (selectFields) => {
+    return supabaseClient
       .from("questions")
-      .select(QUESTION_SELECT_BASE)
+      .select(selectFields)
       .in("test_version", versions)
       .order("test_version", { ascending: true })
       .order("order_index", { ascending: true });
+  };
+
+  let result = await buildQuery(QUESTION_SELECT_WITH_MEDIA);
+  if (result.error && (isMissingColumnError(result.error, "media_file") || isMissingColumnError(result.error, "media_type"))) {
+    result = await buildQuery(QUESTION_SELECT_BASE);
   }
   return result;
 }
@@ -2984,7 +2983,7 @@ export function useTestingWorkspaceState({
       const versions = Array.from(new Set(exportSessions.map(({ session }) => session.problem_set_id).filter(Boolean)));
       const questionsByVersion = {};
       if (versions.length) {
-        const { data, error } = await fetchQuestionsForVersionsWithFallback(supabase, versions);
+        const { data, error } = await fetchQuestionsForVersionsWithFallback(supabase, versions, activeSchoolId);
         if (error) {
           console.error("model export questions fetch error:", error);
           setQuizMsg(`Export failed: ${error.message}`);
@@ -3183,13 +3182,15 @@ export function useTestingWorkspaceState({
       setTestsMsg("Supabase not initialized.");
       return;
     }
-    const { data, error } = await supabase
-      .from("tests")
-      .select("id, version, title, type, is_public, pass_rate, created_at, updated_at")
-      .eq("is_public", true)
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const { data, error } = await fetchAllPages((offset, pageSize) => (
+      supabase
+        .from("tests")
+        .select("id, version, title, type, is_public, pass_rate, created_at, updated_at")
+        .eq("is_public", true)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + pageSize - 1)
+    ));
     if (error) {
       console.error("tests fetch error:", error);
       if (fetchTestsRequestRef.current !== requestId) return;
@@ -4688,7 +4689,7 @@ export function useTestingWorkspaceState({
     setPreviewAnswers({});
     setPreviewMsg("Loading...");
     try {
-      const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, testVersion);
+      const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, testVersion, activeSchoolId);
       if (error) {
         setPreviewQuestions([]);
         setPreviewMsg(`Load failed: ${error.message}`);
@@ -4701,7 +4702,7 @@ export function useTestingWorkspaceState({
       console.error("preview load error:", error);
       setPreviewMsg(error.message);
     }
-  }, [supabase, fetchQuestionsForVersionWithFallback, mapQuestion]);
+  }, [supabase, activeSchoolId, fetchQuestionsForVersionWithFallback, mapQuestion]);
 
   const openSessionPreview = useCallback(async (session) => {
     if (!session?.id || !session?.problem_set_id) return;
@@ -4715,7 +4716,7 @@ export function useTestingWorkspaceState({
     setPreviewAnswers({});
     setPreviewMsg("Loading...");
     try {
-      const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, session.problem_set_id);
+      const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, session.problem_set_id, activeSchoolId);
       if (error) {
         setPreviewQuestions([]);
         setPreviewMsg(`Load failed: ${error.message}`);
@@ -4734,7 +4735,8 @@ export function useTestingWorkspaceState({
 
       const { data: sourceData, error: sourceError } = await fetchQuestionsForVersionsWithFallback(
         supabase,
-        sourceSetIds
+        sourceSetIds,
+        activeSchoolId
       );
       if (sourceError) {
         console.error("session preview source questions error:", sourceError);
@@ -4755,7 +4757,7 @@ export function useTestingWorkspaceState({
       console.error("session preview load error:", error);
       setPreviewMsg(error.message);
     }
-  }, [supabase, fetchQuestionsForVersionWithFallback, fetchQuestionsForVersionsWithFallback, mapQuestion, isDaily]);
+  }, [supabase, activeSchoolId, fetchQuestionsForVersionWithFallback, fetchQuestionsForVersionsWithFallback, mapQuestion, isDaily]);
 
   const closePreview = useCallback(() => {
     setPreviewOpen(false);

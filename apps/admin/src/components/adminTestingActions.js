@@ -247,6 +247,7 @@ export async function openPreviewAction(context, testVersion) {
     setPreviewMsg,
     fetchQuestionsForVersionWithFallback,
     supabase,
+    activeSchoolId,
     mapDbQuestion,
     setPreviewQuestions,
   } = context;
@@ -260,7 +261,7 @@ export async function openPreviewAction(context, testVersion) {
   setPreviewReplacementMsg("");
   setPreviewAnswers({});
   setPreviewMsg("Loading...");
-  const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, testVersion);
+  const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, testVersion, activeSchoolId);
   if (error) {
     console.error("preview questions error:", error);
     setPreviewQuestions([]);
@@ -285,6 +286,7 @@ export async function openSessionPreviewAction(context, session) {
     setPreviewMsg,
     fetchQuestionsForVersionWithFallback,
     supabase,
+    activeSchoolId,
     mapDbQuestion,
     setPreviewQuestions,
     isGeneratedDailySessionVersion,
@@ -302,7 +304,7 @@ export async function openSessionPreviewAction(context, session) {
   setPreviewAnswers({});
   setPreviewMsg("Loading...");
 
-  const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, session.problem_set_id);
+  const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, session.problem_set_id, activeSchoolId);
   if (error) {
     console.error("session preview questions error:", error);
     setPreviewQuestions([]);
@@ -325,7 +327,8 @@ export async function openSessionPreviewAction(context, session) {
 
   const { data: sourceData, error: sourceError } = await fetchQuestionsForVersionsWithFallback(
     supabase,
-    sourceSetIds
+    sourceSetIds,
+    activeSchoolId
   );
   if (sourceError) {
     console.error("session preview source questions error:", sourceError);

@@ -139,6 +139,7 @@ const PERSONAL_UPLOAD_FIELDS = [
 const QUESTION_SELECT_BASE = "id, test_version, question_id, section_key, type, prompt_en, prompt_bn, answer_index, order_index, data";
 const QUESTION_SELECT_WITH_MEDIA = `${QUESTION_SELECT_BASE}, media_file, media_type`;
 const SET_ID_COLLATOR = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+const ADMIN_SUPABASE_SAFE_PAGE_SIZE = 500;
 const DAILY_RECORD_COMMENT_FIELDS =
   "id, student_id, comment, profiles:student_id(display_name, student_code)";
 const ADMIN_SIDEBAR_COLLAPSE_STORAGE_KEY = "jft_admin_sidebar_collapsed_v1";
@@ -313,36 +314,35 @@ function getNextStudentCodeDefault(studentsList) {
   return String(maxNumber + 1).padStart(maxWidth, "0");
 }
 
-async function fetchQuestionsForVersionWithFallback(client, version) {
-  let result = await client
-    .from("questions")
-    .select(QUESTION_SELECT_WITH_MEDIA)
-    .eq("test_version", version)
-    .order("order_index", { ascending: true });
-  if (result.error && (isMissingColumnError(result.error, "media_file") || isMissingColumnError(result.error, "media_type"))) {
-    result = await client
+async function fetchQuestionsForVersionWithFallback(client, version, schoolId = "") {
+  const buildQuery = (selectFields) => {
+    return client
       .from("questions")
-      .select(QUESTION_SELECT_BASE)
+      .select(selectFields)
       .eq("test_version", version)
       .order("order_index", { ascending: true });
+  };
+
+  let result = await buildQuery(QUESTION_SELECT_WITH_MEDIA);
+  if (result.error && (isMissingColumnError(result.error, "media_file") || isMissingColumnError(result.error, "media_type"))) {
+    result = await buildQuery(QUESTION_SELECT_BASE);
   }
   return result;
 }
 
-async function fetchQuestionsForVersionsWithFallback(client, versions) {
-  let result = await client
-    .from("questions")
-    .select(QUESTION_SELECT_WITH_MEDIA)
-    .in("test_version", versions)
-    .order("test_version", { ascending: true })
-    .order("order_index", { ascending: true });
-  if (result.error && (isMissingColumnError(result.error, "media_file") || isMissingColumnError(result.error, "media_type"))) {
-    result = await client
+async function fetchQuestionsForVersionsWithFallback(client, versions, schoolId = "") {
+  const buildQuery = (selectFields) => {
+    return client
       .from("questions")
-      .select(QUESTION_SELECT_BASE)
+      .select(selectFields)
       .in("test_version", versions)
       .order("test_version", { ascending: true })
       .order("order_index", { ascending: true });
+  };
+
+  let result = await buildQuery(QUESTION_SELECT_WITH_MEDIA);
+  if (result.error && (isMissingColumnError(result.error, "media_file") || isMissingColumnError(result.error, "media_type"))) {
+    result = await buildQuery(QUESTION_SELECT_BASE);
   }
   return result;
 }
@@ -3159,7 +3159,7 @@ async function buildProfileEmailMap(supabase, attemptsList) {
   return map;
 }
 
-async function fetchQuestionCounts(supabase, versions) {
+async function fetchQuestionCounts(supabase, versions, schoolId = "") {
   if (!Array.isArray(versions) || versions.length === 0) return {};
   const { data, error } = await supabase
     .from("questions")
@@ -3175,6 +3175,25 @@ async function fetchQuestionCounts(supabase, versions) {
     counts[row.test_version] = (counts[row.test_version] ?? 0) + 1;
   }
   return counts;
+}
+
+async function fetchAllPages(buildPageQuery, pageSize = ADMIN_SUPABASE_SAFE_PAGE_SIZE) {
+  const rows = [];
+  let offset = 0;
+
+  while (true) {
+    const result = await buildPageQuery(offset, pageSize);
+    if (result.error) return { data: null, error: result.error };
+
+    const page = result.data ?? [];
+    rows.push(...page);
+
+    if (page.length < pageSize) {
+      return { data: rows, error: null };
+    }
+
+    offset += pageSize;
+  }
 }
 
 export default function AdminConsole({
@@ -6190,7 +6209,7 @@ export default function AdminConsole({
     let mounted = true;
     setAttemptQuestionsLoading(true);
     setAttemptQuestionsError("");
-    fetchQuestionsForVersionWithFallback(supabase, version).then(({ data, error }) => {
+    fetchQuestionsForVersionWithFallback(supabase, version, activeSchoolId).then(({ data, error }) => {
         if (!mounted) return;
         if (error) {
           console.error("attempt questions fetch error:", error);
@@ -6381,7 +6400,7 @@ export default function AdminConsole({
     setSessionDetailAnalysisPopup({ open: false, title: "", questions: [] });
 
     const [{ data: questionsData, error: questionsError }, attemptsResult, allowancesResult] = await Promise.all([
-      fetchQuestionsForVersionWithFallback(supabase, session.problem_set_id),
+      fetchQuestionsForVersionWithFallback(supabase, session.problem_set_id, activeSchoolId),
       (async () => {
         const buildAttemptsQuery = (fields) =>
           supabase
@@ -8332,13 +8351,15 @@ function openDailyRecordModal(record = null, recordDate = "") {
 
   async function fetchTests() {
     setTestsMsg("Loading...");
-    const { data, error } = await supabase
-      .from("tests")
-      .select("id, version, title, type, pass_rate, is_public, created_at, updated_at")
-      .eq("is_public", true)
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const { data, error } = await fetchAllPages((offset, pageSize) => (
+      supabase
+        .from("tests")
+        .select("id, version, title, type, pass_rate, is_public, created_at, updated_at")
+        .eq("is_public", true)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + pageSize - 1)
+    ));
     if (error) {
       console.error("tests fetch error:", error);
       setTests([]);
@@ -9035,7 +9056,8 @@ function openDailyRecordModal(record = null, recordDate = "") {
 
     const { data: sourceQuestions, error: sourceQuestionsError } = await fetchQuestionsForVersionsWithFallback(
       supabase,
-      normalizedSetIds
+      normalizedSetIds,
+      activeSchoolId
     );
     if (sourceQuestionsError) {
       throw new Error(`Question lookup failed: ${sourceQuestionsError.message}`);
@@ -9791,6 +9813,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
       setPreviewMsg,
       fetchQuestionsForVersionWithFallback,
       supabase,
+      activeSchoolId,
       mapDbQuestion,
       setPreviewQuestions,
     }, testVersion);
@@ -9810,6 +9833,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
       setPreviewMsg,
       fetchQuestionsForVersionWithFallback,
       supabase,
+      activeSchoolId,
       mapDbQuestion,
       setPreviewQuestions,
       isGeneratedDailySessionVersion,
@@ -11380,7 +11404,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
     const versions = Array.from(new Set(sessions.map((session) => session.problem_set_id).filter(Boolean)));
     const questionsByVersion = {};
     if (versions.length) {
-      const { data, error } = await fetchQuestionsForVersionsWithFallback(supabase, versions);
+      const { data, error } = await fetchQuestionsForVersionsWithFallback(supabase, versions, activeSchoolId);
       if (error) {
         console.error("model export questions fetch error:", error);
         setQuizMsg(`Export failed: ${error.message}`);
@@ -12001,7 +12025,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
     const versions = Array.from(new Set((list ?? []).map((a) => a.test_version).filter(Boolean)));
     let questionsByVersion = {};
     if (versions.length) {
-      const { data, error } = await fetchQuestionsForVersionsWithFallback(supabase, versions);
+      const { data, error } = await fetchQuestionsForVersionsWithFallback(supabase, versions, activeSchoolId);
       if (error) {
         console.error("export detail questions fetch error:", error);
       } else {
