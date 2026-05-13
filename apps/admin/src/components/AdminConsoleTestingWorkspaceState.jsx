@@ -208,6 +208,40 @@ function createUploadConflictState() {
   };
 }
 
+function createSpecificQuestionSelectionState() {
+  return {
+    setId: "",
+    setIds: [],
+    questionDbIds: [],
+  };
+}
+
+function createSpecificQuestionPickerState() {
+  return {
+    open: false,
+    target: "model",
+    setId: "",
+    setIds: [],
+    questions: [],
+    questionSetGroups: [],
+    selectedQuestionDbIds: [],
+    loading: false,
+    msg: "",
+  };
+}
+
+function normalizeSetIdList(values) {
+  return Array.from(new Set((values ?? []).map((value) => String(value ?? "").trim()).filter(Boolean)));
+}
+
+function areSameIdLists(leftValues, rightValues) {
+  const left = normalizeSetIdList(leftValues);
+  const right = normalizeSetIdList(rightValues);
+  if (left.length !== right.length) return false;
+  const rightSet = new Set(right);
+  return left.every((value) => rightSet.has(value));
+}
+
 function normalizeLegacyTestErrorMessage(error, action = "update") {
   const text = String(error?.message ?? "").trim();
   if (
@@ -1441,6 +1475,10 @@ export function useTestingWorkspaceState({
   const [dailyConductError, setDailyConductError] = useState("");
   const [dailySetDropdownOpen, setDailySetDropdownOpen] = useState(false);
   const [activeDailyTimePicker, setActiveDailyTimePicker] = useState("");
+  const [modelSpecificQuestionSelection, setModelSpecificQuestionSelection] = useState(() => createSpecificQuestionSelectionState());
+  const [dailySpecificQuestionSelection, setDailySpecificQuestionSelection] = useState(() => createSpecificQuestionSelectionState());
+  const [specificQuestionPicker, setSpecificQuestionPicker] = useState(() => createSpecificQuestionPickerState());
+  const specificQuestionPickerRequestRef = useRef(0);
 
   // Session editing
   const [editingSessionId, setEditingSessionId] = useState("");
@@ -2327,13 +2365,74 @@ export function useTestingWorkspaceState({
   }, [dailySessionForm.selection_mode, dailySessionForm.problem_set_id, dailySessionForm.problem_set_ids]);
 
   const selectedDailyQuestionCount = useMemo(() => {
+    if (dailySessionForm.selection_mode === "single") {
+      const currentSetId = String(dailySessionForm.problem_set_id ?? "").trim();
+      const selectedSetIds = normalizeSetIdList(
+        (dailySpecificQuestionSelection.setIds ?? []).length
+          ? dailySpecificQuestionSelection.setIds
+          : [dailySpecificQuestionSelection.setId]
+      );
+      if (currentSetId && selectedSetIds.length === 1 && selectedSetIds[0] === currentSetId) {
+        const selectedCount = (dailySpecificQuestionSelection.questionDbIds ?? []).length;
+        if (selectedCount > 0) return selectedCount;
+      }
+    } else if (dailySessionForm.selection_mode === "multiple") {
+      const currentSetIds = normalizeSetIdList(selectedDailyProblemSetIds);
+      const selectedSetIds = normalizeSetIdList(
+        (dailySpecificQuestionSelection.setIds ?? []).length
+          ? dailySpecificQuestionSelection.setIds
+          : [dailySpecificQuestionSelection.setId]
+      );
+      if (currentSetIds.length && areSameIdLists(currentSetIds, selectedSetIds)) {
+        const selectedCount = (dailySpecificQuestionSelection.questionDbIds ?? []).length;
+        if (selectedCount > 0) return selectedCount;
+      }
+    }
     const selectedIds = selectedDailyProblemSetIds;
     const questions = dailyQuestionSets.filter((t) => selectedIds.includes(t.version));
     if (!selectedIds.length) return 0;
     if (questions.length !== selectedIds.length) return null;
     if (questions.some((test) => !hasResolvedQuestionCountValue(test?.question_count))) return null;
     return questions.reduce((sum, test) => sum + Number(test.question_count), 0);
-  }, [selectedDailyProblemSetIds, dailyQuestionSets]);
+  }, [
+    dailySessionForm.selection_mode,
+    dailySessionForm.problem_set_id,
+    dailySpecificQuestionSelection,
+    selectedDailyProblemSetIds,
+    dailyQuestionSets,
+  ]);
+
+  const selectedModelSpecificQuestionCount = useMemo(() => {
+    const currentSetId = String(testSessionForm.problem_set_id ?? "").trim();
+    if (!currentSetId) return 0;
+    const selectedSetIds = normalizeSetIdList(
+      (modelSpecificQuestionSelection.setIds ?? []).length
+        ? modelSpecificQuestionSelection.setIds
+        : [modelSpecificQuestionSelection.setId]
+    );
+    if (selectedSetIds.length !== 1 || selectedSetIds[0] !== currentSetId) return 0;
+    return (modelSpecificQuestionSelection.questionDbIds ?? []).length;
+  }, [testSessionForm.problem_set_id, modelSpecificQuestionSelection]);
+
+  const selectedDailySpecificQuestionCount = useMemo(() => {
+    const selectedSetIds = normalizeSetIdList(
+      (dailySpecificQuestionSelection.setIds ?? []).length
+        ? dailySpecificQuestionSelection.setIds
+        : [dailySpecificQuestionSelection.setId]
+    );
+    if (dailySessionForm.selection_mode === "single") {
+      const currentSetId = String(dailySessionForm.problem_set_id ?? "").trim();
+      if (!currentSetId) return 0;
+      if (selectedSetIds.length !== 1 || selectedSetIds[0] !== currentSetId) return 0;
+      return (dailySpecificQuestionSelection.questionDbIds ?? []).length;
+    }
+    if (dailySessionForm.selection_mode === "multiple") {
+      const currentSetIds = normalizeSetIdList(selectedDailyProblemSetIds);
+      if (!currentSetIds.length || !areSameIdLists(currentSetIds, selectedSetIds)) return 0;
+      return (dailySpecificQuestionSelection.questionDbIds ?? []).length;
+    }
+    return 0;
+  }, [dailySessionForm.selection_mode, dailySessionForm.problem_set_id, selectedDailyProblemSetIds, dailySpecificQuestionSelection]);
 
   const generatedDailySessionTitle = useMemo(() => {
     if (dailyConductMode === "retake" || !selectedDailyProblemSetIds.length) return "";
@@ -3716,59 +3815,11 @@ export function useTestingWorkspaceState({
     buildDailySessionTitle({ category, setIds })
   ), []);
 
-  const materializeDailyProblemSet = useCallback(async ({
-    sourceSetIds,
-    category,
-    questionCountMode,
-    questionCount,
-    passRate,
-    randomOrder = true,
+  const cloneQuestionsToDerivedSet = useCallback(async ({
+    generatedVersion,
+    selectedQuestions,
+    normalizedSetIds,
   }) => {
-    if (!supabase) throw new Error("Supabase not initialized.");
-    const effectiveRandomOrder = Boolean(randomOrder) || questionCountMode === "specify";
-
-    const normalizedSetIds = Array.from(new Set((sourceSetIds ?? []).map((id) => String(id ?? "").trim()).filter(Boolean)));
-    if (!normalizedSetIds.length) {
-      throw new Error("Choose at least one SetID.");
-    }
-
-    const shouldCreateDerivedSet =
-      effectiveRandomOrder
-      || normalizedSetIds.length > 1
-      || questionCountMode === "specify";
-
-    if (!shouldCreateDerivedSet) {
-      return normalizedSetIds[0];
-    }
-
-    const { data: sourceQuestions, error: sourceQuestionsError } = await fetchQuestionsForVersionsWithFallback(
-      supabase,
-      normalizedSetIds,
-      activeSchoolId
-    );
-    if (sourceQuestionsError) {
-      throw new Error(`Question lookup failed: ${sourceQuestionsError.message}`);
-    }
-
-    const orderedQuestions = normalizedSetIds.flatMap((version) =>
-      (sourceQuestions ?? []).filter((row) => row.test_version === version)
-    );
-    if (!orderedQuestions.length) {
-      throw new Error("No questions found for the selected SetID values.");
-    }
-
-    const requestedQuestionCount =
-      questionCountMode === "specify"
-        ? Number(questionCount)
-        : orderedQuestions.length;
-    if (!Number.isFinite(requestedQuestionCount) || requestedQuestionCount <= 0) {
-      throw new Error("Specify a valid number of questions.");
-    }
-    if (requestedQuestionCount > orderedQuestions.length) {
-      throw new Error(`Only ${orderedQuestions.length} questions are available for the selected SetID values.`);
-    }
-
-    const selectedQuestions = (effectiveRandomOrder ? shuffleCopy(orderedQuestions) : [...orderedQuestions]).slice(0, requestedQuestionCount);
     const sourceQuestionIds = selectedQuestions.map((row) => row.id).filter(Boolean);
     const { data: sourceChoices, error: sourceChoicesError } = sourceQuestionIds.length
       ? await supabase
@@ -3780,21 +3831,9 @@ export function useTestingWorkspaceState({
       throw new Error(`Choice lookup failed: ${sourceChoicesError.message}`);
     }
 
-    const generatedVersion = `daily_session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const ensure = await ensureTestRecord(
-      generatedVersion,
-      category || generatedVersion,
-      "daily",
-      passRate,
-      activeSchoolId,
-    );
-    if (!ensure.ok) {
-      throw new Error(ensure.message);
-    }
-
     const questionKeyBySourceId = new Map();
     const nextQuestions = selectedQuestions.map((row, index) => {
-      const nextQuestionId = `${row.test_version || "daily"}__${row.question_id || index + 1}__${index + 1}`;
+      const nextQuestionId = `${row.test_version || "set"}__${row.question_id || index + 1}__${index + 1}`;
       questionKeyBySourceId.set(row.id, nextQuestionId);
       return {
         school_id: activeSchoolId,
@@ -3853,9 +3892,172 @@ export function useTestingWorkspaceState({
         throw new Error(`Choice clone failed: ${insertChoicesError.message}`);
       }
     }
+  }, [supabase, activeSchoolId]);
+
+  const materializeSessionProblemSet = useCallback(async ({
+    sourceSetIds,
+    category,
+    questionCountMode,
+    questionCount,
+    passRate,
+    randomOrder = true,
+    selectedQuestionDbIds = [],
+    type = "daily",
+    generatedVersionPrefix = "daily_session",
+  }) => {
+    if (!supabase) throw new Error("Supabase not initialized.");
+
+    const normalizedSetIds = Array.from(new Set((sourceSetIds ?? []).map((id) => String(id ?? "").trim()).filter(Boolean)));
+    if (!normalizedSetIds.length) {
+      throw new Error("Choose at least one SetID.");
+    }
+
+    const { data: sourceQuestions, error: sourceQuestionsError } = await fetchQuestionsForVersionsWithFallback(
+      supabase,
+      normalizedSetIds,
+      activeSchoolId
+    );
+    if (sourceQuestionsError) {
+      throw new Error(`Question lookup failed: ${sourceQuestionsError.message}`);
+    }
+
+    const orderedQuestions = normalizedSetIds.flatMap((version) =>
+      (sourceQuestions ?? []).filter((row) => row.test_version === version)
+    );
+    if (!orderedQuestions.length) {
+      throw new Error("No questions found for the selected SetID values.");
+    }
+
+    const normalizedSelectedQuestionDbIds = Array.from(
+      new Set((selectedQuestionDbIds ?? []).map((value) => String(value ?? "").trim()).filter(Boolean))
+    );
+    const selectedQuestionIdSet = new Set(normalizedSelectedQuestionDbIds);
+    const hasSpecificQuestionSelection = selectedQuestionIdSet.size > 0;
+    if (hasSpecificQuestionSelection) {
+      const availableQuestionDbIds = new Set(
+        orderedQuestions
+          .map((row) => String(row.id ?? "").trim())
+          .filter(Boolean)
+      );
+      const missingQuestionIds = normalizedSelectedQuestionDbIds.filter((questionId) => !availableQuestionDbIds.has(questionId));
+      if (missingQuestionIds.length) {
+        throw new Error("Selected questions are no longer available. Please re-open Select Specific Questions.");
+      }
+      if (
+        normalizedSetIds.length === 1
+        && normalizedSelectedQuestionDbIds.length === orderedQuestions.length
+        && questionCountMode !== "specify"
+        && !Boolean(randomOrder)
+      ) {
+        return normalizedSetIds[0];
+      }
+    }
+
+    const effectiveRandomOrder = !hasSpecificQuestionSelection && (Boolean(randomOrder) || questionCountMode === "specify");
+    const shouldCreateDerivedSet =
+      hasSpecificQuestionSelection
+      || effectiveRandomOrder
+      || normalizedSetIds.length > 1
+      || questionCountMode === "specify";
+
+    if (!shouldCreateDerivedSet) {
+      return normalizedSetIds[0];
+    }
+
+    let selectedQuestions = [];
+    if (hasSpecificQuestionSelection) {
+      const specificPool = orderedQuestions.filter((row) => selectedQuestionIdSet.has(String(row.id ?? "").trim()));
+      if (questionCountMode === "specify") {
+        const requestedQuestionCount = Number(questionCount);
+        if (!Number.isFinite(requestedQuestionCount) || requestedQuestionCount <= 0) {
+          throw new Error("Specify a valid number of questions.");
+        }
+        if (requestedQuestionCount > specificPool.length) {
+          throw new Error(`Only ${specificPool.length} selected questions are available.`);
+        }
+        selectedQuestions = (Boolean(randomOrder) ? shuffleCopy(specificPool) : [...specificPool]).slice(0, requestedQuestionCount);
+      } else {
+        selectedQuestions = specificPool;
+      }
+    } else {
+      const requestedQuestionCount =
+        questionCountMode === "specify"
+          ? Number(questionCount)
+          : orderedQuestions.length;
+      if (!Number.isFinite(requestedQuestionCount) || requestedQuestionCount <= 0) {
+        throw new Error("Specify a valid number of questions.");
+      }
+      if (requestedQuestionCount > orderedQuestions.length) {
+        throw new Error(`Only ${orderedQuestions.length} questions are available for the selected SetID values.`);
+      }
+      selectedQuestions = (effectiveRandomOrder ? shuffleCopy(orderedQuestions) : [...orderedQuestions]).slice(0, requestedQuestionCount);
+    }
+
+    if (!selectedQuestions.length) {
+      throw new Error("Select at least one question.");
+    }
+
+    const generatedVersion = `${generatedVersionPrefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const ensure = await ensureTestRecord(
+      generatedVersion,
+      category || generatedVersion,
+      type,
+      passRate,
+      activeSchoolId,
+    );
+    if (!ensure.ok) {
+      throw new Error(ensure.message);
+    }
+
+    await cloneQuestionsToDerivedSet({
+      generatedVersion,
+      selectedQuestions,
+      normalizedSetIds,
+    });
 
     return generatedVersion;
-  }, [supabase, activeSchoolId, fetchQuestionsForVersionsWithFallback]);
+  }, [supabase, activeSchoolId, fetchQuestionsForVersionsWithFallback, cloneQuestionsToDerivedSet]);
+
+  const materializeDailyProblemSet = useCallback(async ({
+    sourceSetIds,
+    category,
+    questionCountMode,
+    questionCount,
+    passRate,
+    randomOrder = true,
+    selectedQuestionDbIds = [],
+  }) => {
+    return materializeSessionProblemSet({
+      sourceSetIds,
+      category,
+      questionCountMode,
+      questionCount,
+      passRate,
+      randomOrder,
+      selectedQuestionDbIds,
+      type: "daily",
+      generatedVersionPrefix: "daily_session",
+    });
+  }, [materializeSessionProblemSet]);
+
+  const materializeModelProblemSet = useCallback(async ({
+    sourceSetIds,
+    category,
+    passRate,
+    selectedQuestionDbIds = [],
+  }) => {
+    return materializeSessionProblemSet({
+      sourceSetIds,
+      category,
+      questionCountMode: "all",
+      questionCount: "",
+      passRate,
+      randomOrder: false,
+      selectedQuestionDbIds,
+      type: "mock",
+      generatedVersionPrefix: "mock_session",
+    });
+  }, [materializeSessionProblemSet]);
 
   const ensureTestRecord = useCallback(async (testVersion, title, type, passRate, schoolId = activeSchoolId) => {
     if (!schoolId || !supabase) {
@@ -3982,6 +4184,24 @@ export function useTestingWorkspaceState({
       setModelConductError("Pass rate must be between 0 and 1.");
       return;
     }
+    const normalizedModelSpecificQuestionDbIds = (
+      modelConductMode === "retake"
+        ? []
+        : (
+          (() => {
+            const selectedSetIds = normalizeSetIdList(
+              (modelSpecificQuestionSelection.setIds ?? []).length
+                ? modelSpecificQuestionSelection.setIds
+                : [modelSpecificQuestionSelection.setId]
+            );
+            return selectedSetIds.length === 1 && selectedSetIds[0] === problemSetId;
+          })()
+            ? (modelSpecificQuestionSelection.questionDbIds ?? [])
+            : []
+        )
+    )
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean);
     const audienceMode = normalizeSessionAudienceMode(testSessionForm.audience_mode);
     const audienceStudentIds = normalizeSessionAudienceStudentIds(testSessionForm.audience_student_ids);
     if (audienceMode === "include" && !audienceStudentIds.length) {
@@ -3997,9 +4217,23 @@ export function useTestingWorkspaceState({
       setModelConductError(`Check failed: ${error.message}`);
       return;
     }
+    let effectiveProblemSetId = problemSetId;
+    if (normalizedModelSpecificQuestionDbIds.length) {
+      try {
+        effectiveProblemSetId = await materializeModelProblemSet({
+          sourceSetIds: [problemSetId],
+          category: String(testMetaByVersion[problemSetId]?.category ?? modelConductCategory ?? "").trim() || problemSetId,
+          passRate,
+          selectedQuestionDbIds: normalizedModelSpecificQuestionDbIds,
+        });
+      } catch (error) {
+        setModelConductError(error.message);
+        return;
+      }
+    }
     const payload = {
       school_id: activeSchoolId,
-      problem_set_id: problemSetId,
+      problem_set_id: effectiveProblemSetId,
       title,
       starts_at: startsAtInput ? fromBangladeshInput(startsAtInput) : null,
       ends_at: endsAt ? fromBangladeshInput(endsAt) : null,
@@ -4024,14 +4258,14 @@ export function useTestingWorkspaceState({
     const { error: passRateError } = await supabase
       .from("tests")
       .update({ pass_rate: passRate, updated_at: new Date().toISOString() })
-      .eq("version", problemSetId);
+      .eq("version", effectiveProblemSetId);
     if (passRateError) {
       console.error("test pass_rate update error:", passRateError);
       setTestSessionsMsg(`Session created but pass rate update failed: ${passRateError.message}`);
     }
     const { error: linkError } = await supabase.from("exam_links").insert({
       test_session_id: created.id,
-      test_version: problemSetId,
+      test_version: effectiveProblemSetId,
       expires_at: fromBangladeshInput(endsAt)
     });
     if (linkError) {
@@ -4059,6 +4293,8 @@ export function useTestingWorkspaceState({
     setModelRetakeSourceId("");
     setModelConductOpen(false);
     setActiveModelTimePicker("");
+    setModelSpecificQuestionSelection(createSpecificQuestionSelectionState());
+    setSpecificQuestionPicker(createSpecificQuestionPickerState());
     await recordAuditEvent({
       actionType: modelConductMode === "retake" ? "create_retake_session" : "create_session",
       entityType: "test_session",
@@ -4067,13 +4303,15 @@ export function useTestingWorkspaceState({
       metadata: {
         test_type: "mock",
         title,
-        problem_set_id: problemSetId,
+        problem_set_id: effectiveProblemSetId,
+        source_problem_set_id: problemSetId,
+        selected_question_count: normalizedModelSpecificQuestionDbIds.length || null,
         starts_at: payload.starts_at,
         ends_at: payload.ends_at,
       },
     });
     fetchTestSessions();
-  }, [supabase, activeSchoolId, modelConductMode, modelRetakeSourceId, testSessionForm, fetchTestSessions, hasDuplicateSessionTitle, recordAuditEvent]);
+  }, [supabase, activeSchoolId, modelConductMode, modelRetakeSourceId, testSessionForm, modelSpecificQuestionSelection, materializeModelProblemSet, testMetaByVersion, modelConductCategory, fetchTestSessions, hasDuplicateSessionTitle, recordAuditEvent]);
 
   const createDailySession = useCallback(async () => {
     setDailyConductError("");
@@ -4110,6 +4348,25 @@ export function useTestingWorkspaceState({
     const title = String(dailySessionForm.title ?? "").trim() || generatedTitle;
     const endsAt = endsAtInput;
     const passRate = Number(dailySessionForm.pass_rate);
+    const currentDailySpecificSelectionSetIds = normalizeSetIdList(
+      (dailySpecificQuestionSelection.setIds ?? []).length
+        ? dailySpecificQuestionSelection.setIds
+        : [dailySpecificQuestionSelection.setId]
+    );
+    const normalizedDailySpecificQuestionDbIds = dailyConductMode === "retake"
+      ? []
+      : (
+        dailySessionForm.selection_mode === "single"
+          ? (
+            currentDailySpecificSelectionSetIds.length === 1
+            && currentDailySpecificSelectionSetIds[0] === String(dailySessionForm.problem_set_id ?? "").trim()
+          )
+          : areSameIdLists(currentDailySpecificSelectionSetIds, selectedSetIds)
+      )
+        ? (dailySpecificQuestionSelection.questionDbIds ?? [])
+            .map((value) => String(value ?? "").trim())
+            .filter(Boolean)
+        : [];
     if (!selectedSetIds.length) {
       setDailyConductError(isMultipleSelection ? "Choose one or more SetID values." : "SetID is required.");
       return;
@@ -4140,11 +4397,14 @@ export function useTestingWorkspaceState({
         setDailyConductError("Specify a valid number of questions.");
         return;
       }
-      const ensuredCounts = await ensureQuestionCounts(selectedSetIds);
-      const availableQuestionCount = selectedSetIds.reduce(
-        (sum, version) => sum + Number(ensuredCounts[String(version ?? "").trim()] ?? 0),
-        0
-      );
+      let availableQuestionCount = normalizedDailySpecificQuestionDbIds.length;
+      if (!availableQuestionCount) {
+        const ensuredCounts = await ensureQuestionCounts(selectedSetIds);
+        availableQuestionCount = selectedSetIds.reduce(
+          (sum, version) => sum + Number(ensuredCounts[String(version ?? "").trim()] ?? 0),
+          0
+        );
+      }
       if (requestedQuestionCount > availableQuestionCount) {
         setDailyConductError(`Only ${availableQuestionCount} questions are available for the selected SetID.`);
         return;
@@ -4181,6 +4441,7 @@ export function useTestingWorkspaceState({
           questionCount: dailySessionForm.question_count,
           passRate,
           randomOrder: Boolean(dailySessionForm.random_order),
+          selectedQuestionDbIds: normalizedDailySpecificQuestionDbIds,
         });
       } catch (error) {
         setDailySessionsMsg(error.message);
@@ -4278,6 +4539,8 @@ export function useTestingWorkspaceState({
     setDailySourceCategoryDropdownOpen(false);
     setDailySetDropdownOpen(false);
     setActiveDailyTimePicker("");
+    setDailySpecificQuestionSelection(createSpecificQuestionSelectionState());
+    setSpecificQuestionPicker(createSpecificQuestionPickerState());
     await recordAuditEvent({
       actionType: dailyConductMode === "retake" ? "create_retake_session" : "create_session",
       entityType: "test_session",
@@ -4289,13 +4552,14 @@ export function useTestingWorkspaceState({
         category: sessionCategory,
         problem_set_id: problemSetId,
         source_set_ids: selectedSetIds,
+        selected_question_count: normalizedDailySpecificQuestionDbIds.length || null,
         starts_at: payload.starts_at,
         ends_at: payload.ends_at,
       },
     });
     fetchTests();
     fetchTestSessions();
-  }, [supabase, activeSchoolId, dailyConductMode, dailyRetakeSourceId, dailySessionForm, selectedDailyProblemSetIds, selectedDailySourceCategoryNames, selectedDailyQuestionCount, dailyConductCategory, materializeDailyProblemSet, hasDuplicateSessionTitle, fetchTests, fetchTestSessions, recordAuditEvent, ensureQuestionCounts]);
+  }, [supabase, activeSchoolId, dailyConductMode, dailyRetakeSourceId, dailySessionForm, dailySpecificQuestionSelection, selectedDailyProblemSetIds, selectedDailySourceCategoryNames, selectedDailyQuestionCount, dailyConductCategory, materializeDailyProblemSet, hasDuplicateSessionTitle, fetchTests, fetchTestSessions, recordAuditEvent, ensureQuestionCounts]);
 
   const startEditSession = useCallback((session) => {
     if (!session?.id) return;
@@ -5998,6 +6262,229 @@ export function useTestingWorkspaceState({
     });
   }, []);
 
+  const closeSpecificQuestionPicker = useCallback(() => {
+    setSpecificQuestionPicker(createSpecificQuestionPickerState());
+  }, []);
+
+  const openSpecificQuestionPicker = useCallback(async (target = "model") => {
+    const normalizedTarget = target === "daily" ? "daily" : "model";
+    const setIds = normalizedTarget === "daily"
+      ? (
+        dailySessionForm.selection_mode === "multiple"
+          ? normalizeSetIdList(selectedDailyProblemSetIds)
+          : normalizeSetIdList([dailySessionForm.problem_set_id])
+      )
+      : normalizeSetIdList([testSessionForm.problem_set_id]);
+    if (!setIds.length) {
+      if (normalizedTarget === "daily") {
+        setDailyConductError("Choose a SetID first.");
+      } else {
+        setModelConductError("Choose a SetID first.");
+      }
+      return;
+    }
+
+    if (normalizedTarget === "daily") {
+      setDailyConductError("");
+    } else {
+      setModelConductError("");
+    }
+
+    const previousSelection = normalizedTarget === "daily"
+      ? dailySpecificQuestionSelection
+      : modelSpecificQuestionSelection;
+    const previousSetIds = normalizeSetIdList(
+      (previousSelection.setIds ?? []).length
+        ? previousSelection.setIds
+        : [previousSelection.setId]
+    );
+    const hasSameSetSelection = areSameIdLists(previousSetIds, setIds);
+    const initialSelectedQuestionDbIds = hasSameSetSelection
+      ? Array.from(new Set((previousSelection.questionDbIds ?? []).map((value) => String(value ?? "").trim()).filter(Boolean)))
+      : [];
+
+    const requestId = specificQuestionPickerRequestRef.current + 1;
+    specificQuestionPickerRequestRef.current = requestId;
+    setSpecificQuestionPicker({
+      open: true,
+      target: normalizedTarget,
+      setId: setIds[0] ?? "",
+      setIds,
+      questions: [],
+      questionSetGroups: [],
+      selectedQuestionDbIds: initialSelectedQuestionDbIds,
+      loading: true,
+      msg: "Loading questions...",
+    });
+
+    const questionResult = setIds.length > 1
+      ? await fetchQuestionsForVersionsWithFallback(supabase, setIds, activeSchoolId)
+      : await fetchQuestionsForVersionWithFallback(supabase, setIds[0], activeSchoolId);
+    const { data, error } = questionResult;
+    if (requestId !== specificQuestionPickerRequestRef.current) return;
+
+    if (error) {
+      setSpecificQuestionPicker({
+        open: true,
+        target: normalizedTarget,
+        setId: setIds[0] ?? "",
+        setIds,
+        questions: [],
+        questionSetGroups: [],
+        selectedQuestionDbIds: initialSelectedQuestionDbIds,
+        loading: false,
+        msg: `Load failed: ${error.message}`,
+      });
+      return;
+    }
+
+    const questions = (data ?? []).map(mapQuestion);
+    const availableQuestionDbIds = new Set(
+      questions
+        .map((question) => String(question?.dbId ?? "").trim())
+        .filter(Boolean)
+    );
+    const defaultSelectedQuestionDbIds = questions
+      .map((question) => String(question?.dbId ?? "").trim())
+      .filter(Boolean);
+    const sanitizedSelectedQuestionDbIds = hasSameSetSelection
+      ? initialSelectedQuestionDbIds.filter((id) => availableQuestionDbIds.has(id))
+      : defaultSelectedQuestionDbIds;
+    const questionSetGroups = setIds.map((setId) => ({
+      setId,
+      questions: questions.filter((question) => String(question?.testVersion ?? "").trim() === setId),
+    }));
+    setSpecificQuestionPicker({
+      open: true,
+      target: normalizedTarget,
+      setId: setIds[0] ?? "",
+      setIds,
+      questions,
+      questionSetGroups,
+      selectedQuestionDbIds: sanitizedSelectedQuestionDbIds,
+      loading: false,
+      msg: questions.length ? "" : "No questions found for the selected SetID.",
+    });
+  }, [
+    activeSchoolId,
+    selectedDailyProblemSetIds,
+    dailySessionForm.problem_set_id,
+    dailySessionForm.selection_mode,
+    dailySpecificQuestionSelection,
+    modelSpecificQuestionSelection,
+    setDailyConductError,
+    setModelConductError,
+    supabase,
+    testSessionForm.problem_set_id,
+    fetchQuestionsForVersionWithFallback,
+    fetchQuestionsForVersionsWithFallback,
+    mapQuestion,
+  ]);
+
+  const toggleSpecificQuestionPickerQuestion = useCallback((questionDbId) => {
+    const normalizedId = String(questionDbId ?? "").trim();
+    if (!normalizedId) return;
+    setSpecificQuestionPicker((current) => {
+      const currentSet = new Set(current.selectedQuestionDbIds ?? []);
+      if (currentSet.has(normalizedId)) {
+        currentSet.delete(normalizedId);
+      } else {
+        currentSet.add(normalizedId);
+      }
+      return {
+        ...current,
+        selectedQuestionDbIds: Array.from(currentSet),
+      };
+    });
+  }, []);
+
+  const selectAllSpecificQuestionsInPicker = useCallback((targetSetId = "") => {
+    const normalizedSetId = String(targetSetId ?? "").trim();
+    setSpecificQuestionPicker((current) => {
+      const candidateQuestions = normalizedSetId
+        ? (current.questions ?? []).filter((question) => String(question?.testVersion ?? "").trim() === normalizedSetId)
+        : (current.questions ?? []);
+      const idsToAdd = candidateQuestions
+        .map((question) => String(question?.dbId ?? "").trim())
+        .filter(Boolean);
+      const nextSet = new Set(current.selectedQuestionDbIds ?? []);
+      idsToAdd.forEach((id) => nextSet.add(id));
+      return {
+        ...current,
+        selectedQuestionDbIds: Array.from(nextSet),
+      };
+    });
+  }, []);
+
+  const clearSpecificQuestionsInPicker = useCallback((targetSetId = "") => {
+    const normalizedSetId = String(targetSetId ?? "").trim();
+    setSpecificQuestionPicker((current) => {
+      if (!normalizedSetId) {
+        return {
+          ...current,
+          selectedQuestionDbIds: [],
+        };
+      }
+      const idsToRemove = new Set(
+        (current.questions ?? [])
+          .filter((question) => String(question?.testVersion ?? "").trim() === normalizedSetId)
+          .map((question) => String(question?.dbId ?? "").trim())
+          .filter(Boolean)
+      );
+      return {
+        ...current,
+        selectedQuestionDbIds: (current.selectedQuestionDbIds ?? []).filter((id) => !idsToRemove.has(String(id ?? "").trim())),
+      };
+    });
+  }, []);
+
+  const applySpecificQuestionsInPicker = useCallback(() => {
+    const normalizedSetIds = normalizeSetIdList(
+      (specificQuestionPicker.setIds ?? []).length
+        ? specificQuestionPicker.setIds
+        : [specificQuestionPicker.setId]
+    );
+    if (!normalizedSetIds.length) {
+      setSpecificQuestionPicker(createSpecificQuestionPickerState());
+      return;
+    }
+    const nextQuestionDbIds = Array.from(
+      new Set(
+        (specificQuestionPicker.selectedQuestionDbIds ?? [])
+          .map((value) => String(value ?? "").trim())
+          .filter(Boolean)
+      )
+    );
+    if (specificQuestionPicker.target === "daily") {
+      setDailySpecificQuestionSelection({
+        setId: normalizedSetIds[0] ?? "",
+        setIds: normalizedSetIds,
+        questionDbIds: nextQuestionDbIds,
+      });
+      setDailySessionForm((current) => ({
+        ...current,
+        question_count_mode: "all",
+        question_count: "",
+        random_order: false,
+      }));
+    } else {
+      setModelSpecificQuestionSelection({
+        setId: normalizedSetIds[0] ?? "",
+        setIds: normalizedSetIds,
+        questionDbIds: nextQuestionDbIds,
+      });
+    }
+    setSpecificQuestionPicker(createSpecificQuestionPickerState());
+  }, [specificQuestionPicker]);
+
+  const clearModelSpecificQuestionSelection = useCallback(() => {
+    setModelSpecificQuestionSelection(createSpecificQuestionSelectionState());
+  }, []);
+
+  const clearDailySpecificQuestionSelection = useCallback(() => {
+    setDailySpecificQuestionSelection(createSpecificQuestionSelectionState());
+  }, []);
+
   useEffect(() => {
     if (dailyConductMode === "retake") return;
     if (!generatedDailySessionTitle) return;
@@ -6094,11 +6581,19 @@ export function useTestingWorkspaceState({
     testMetaByVersion,
   ]);
 
+  useEffect(() => {
+    if (modelConductOpen || dailyConductOpen) return;
+    if (!specificQuestionPicker.open) return;
+    setSpecificQuestionPicker(createSpecificQuestionPickerState());
+  }, [modelConductOpen, dailyConductOpen, specificQuestionPicker.open]);
+
   const openModelConductModal = useCallback((mode = "normal") => {
     setModelConductMode(mode);
     setModelConductOpen(true);
     setTestSessionsMsg("");
     setActiveModelTimePicker("");
+    setSpecificQuestionPicker(createSpecificQuestionPickerState());
+    setModelSpecificQuestionSelection(createSpecificQuestionSelectionState());
     if (mode !== "retake") {
       setModelRetakeSourceId("");
       setTestSessionForm((current) => ({
@@ -6136,6 +6631,8 @@ export function useTestingWorkspaceState({
     setDailySourceCategoryDropdownOpen(false);
     setDailySetDropdownOpen(false);
     setActiveDailyTimePicker("");
+    setSpecificQuestionPicker(createSpecificQuestionPickerState());
+    setDailySpecificQuestionSelection(createSpecificQuestionSelectionState());
     if (mode !== "retake") {
       setDailyRetakeCategory("");
       setDailyRetakeSourceId("");
@@ -6510,6 +7007,7 @@ export function useTestingWorkspaceState({
     setDailyConductError,
     modelUploadConflict,
     dailyUploadConflict,
+    specificQuestionPicker,
 
     // Conduct modes
     modelConductMode,
@@ -6696,6 +7194,10 @@ export function useTestingWorkspaceState({
     dailySingleModeTests,
     selectedDailyProblemSetIds,
     selectedDailyQuestionCount,
+    selectedModelSpecificQuestionCount,
+    selectedDailySpecificQuestionCount,
+    modelSpecificQuestionSelection,
+    dailySpecificQuestionSelection,
     dailyCategories,
     modelCategories,
     dailyConductCategories,
@@ -6749,6 +7251,7 @@ export function useTestingWorkspaceState({
     attemptsRefreshing,
     buildGeneratedDailySessionTitle,
     materializeDailyProblemSet,
+    materializeModelProblemSet,
     ensureTestRecord,
     createTestSession,
     createDailySession,
@@ -6795,6 +7298,14 @@ export function useTestingWorkspaceState({
     updateDailySessionTimePart,
     toggleDailySourceCategorySelection,
     toggleDailyProblemSetSelection,
+    openSpecificQuestionPicker,
+    closeSpecificQuestionPicker,
+    toggleSpecificQuestionPickerQuestion,
+    selectAllSpecificQuestionsInPicker,
+    clearSpecificQuestionsInPicker,
+    applySpecificQuestionsInPicker,
+    clearModelSpecificQuestionSelection,
+    clearDailySpecificQuestionSelection,
 
     // Helper functions
     formatDateTime,

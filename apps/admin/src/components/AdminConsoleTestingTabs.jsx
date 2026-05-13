@@ -68,6 +68,17 @@ export default function AdminConsoleTestingTabs({
   activeModelTimePicker,
   updateModelSessionTimePart,
   createTestSession,
+  openSpecificQuestionPicker,
+  closeSpecificQuestionPicker,
+  toggleSpecificQuestionPickerQuestion,
+  selectAllSpecificQuestionsInPicker,
+  clearSpecificQuestionsInPicker,
+  applySpecificQuestionsInPicker,
+  clearModelSpecificQuestionSelection,
+  clearDailySpecificQuestionSelection,
+  selectedModelSpecificQuestionCount,
+  selectedDailySpecificQuestionCount,
+  specificQuestionPicker,
   modelRetakeSourceId,
   modelConductCategory,
   setModelConductCategory,
@@ -233,6 +244,19 @@ export default function AdminConsoleTestingTabs({
         ))}
       </div>
     );
+  }
+
+  function getSpecificQuestionPreviewText(question) {
+    const raw = String(
+      question?.promptEn
+      ?? question?.promptBn
+      ?? question?.data?.question
+      ?? question?.data?.prompt
+      ?? ""
+    ).replace(/\s+/g, " ").trim();
+    if (!raw) return "No prompt preview";
+    if (raw.length <= 120) return raw;
+    return `${raw.slice(0, 120)}...`;
   }
 
   function getSessionRowProps(sessionItem, sessionType) {
@@ -610,7 +634,6 @@ export default function AdminConsoleTestingTabs({
                         <col style={{ minWidth: 180 }} />
                         <col />
                         <col style={{ minWidth: 150 }} />
-                        <col style={{ minWidth: 100 }} />
                         <col style={{ minWidth: 120 }} />
                         <col style={{ minWidth: 88 }} />
                         <col />
@@ -630,7 +653,6 @@ export default function AdminConsoleTestingTabs({
                           <th>Test Title</th>
                           <th>Category</th>
                           <th>SetID</th>
-                          <th>Description</th>
                           <th style={{ minWidth: 100, textAlign: "left" }}>Start</th>
                           <th style={{ minWidth: 120, textAlign: "left" }}>End</th>
                           <th>Questions</th>
@@ -652,7 +674,6 @@ export default function AdminConsoleTestingTabs({
                             <td>{t.title ?? ""}</td>
                             <td>{testMetaByVersion[t.problem_set_id]?.category || "Uncategorized"}</td>
                             <td>{getProblemSetDisplayId(t.problem_set_id, tests, t.source_set_ids, t)}</td>
-                            <td>{renderProblemSetDescription(t.problem_set_id, t.source_set_ids)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.starts_at)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.ends_at)}</td>
                             <td style={{ textAlign: "center" }}>
@@ -1029,11 +1050,48 @@ export default function AdminConsoleTestingTabs({
                                 <option value="">No problem sets</option>
                               )}
                             </select>
-                            {testSessionForm.problem_set_id ? (
-                              <div className="admin-help" style={{ marginTop: 4 }}>
-                                {renderProblemSetDescription(testSessionForm.problem_set_id)}
-                              </div>
-                            ) : null}
+                            <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                              <button
+                                type="button"
+                                onClick={() => openSpecificQuestionPicker("model")}
+                                disabled={!testSessionForm.problem_set_id}
+                                style={{
+                                  border: "none",
+                                  background: "none",
+                                  padding: 0,
+                                  margin: 0,
+                                  fontSize: 12,
+                                  lineHeight: 1.3,
+                                  textDecoration: "underline",
+                                  color: testSessionForm.problem_set_id ? "#1d4ed8" : "#9ca3af",
+                                  cursor: testSessionForm.problem_set_id ? "pointer" : "not-allowed",
+                                }}
+                              >
+                                Select Specific Questions
+                              </button>
+                              {selectedModelSpecificQuestionCount > 0 ? (
+                                <>
+                                  <span className="admin-help">Selected: {selectedModelSpecificQuestionCount}</span>
+                                  <button
+                                    type="button"
+                                    onClick={clearModelSpecificQuestionSelection}
+                                    style={{
+                                      border: "none",
+                                      background: "none",
+                                      padding: 0,
+                                      margin: 0,
+                                      fontSize: 12,
+                                      lineHeight: 1.3,
+                                      textDecoration: "underline",
+                                      color: "#1d4ed8",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    Clear
+                                  </button>
+                                </>
+                              ) : null}
+                            </div>
                             {modelConductCategory && !modelConductTests.length ? (
                               <div className="admin-help" style={{ marginTop: 4 }}>
                                 No SetIDs have been uploaded yet for this category.
@@ -1681,7 +1739,6 @@ export default function AdminConsoleTestingTabs({
                         <col style={{ minWidth: 180 }} />
                         {showDailySessionCategories ? <col /> : null}
                         <col className="daily-sessions-col-setid" style={{ minWidth: 150 }} />
-                        <col style={{ minWidth: 180 }} />
                         <col style={{ minWidth: 100 }} />
                         <col style={{ minWidth: 88 }} />
                         <col />
@@ -1700,7 +1757,6 @@ export default function AdminConsoleTestingTabs({
                           <th>Test Title</th>
                           {showDailySessionCategories ? <th>Category</th> : null}
                           <th>SetID</th>
-                          <th>Description</th>
                           <th style={{ minWidth: 100, textAlign: "left" }}>Start</th>
                           <th style={{ minWidth: 120, textAlign: "left" }}>End</th>
                           <th>Questions</th>
@@ -1724,7 +1780,6 @@ export default function AdminConsoleTestingTabs({
                               <td>{String(t.session_category ?? "").trim() || testMetaByVersion[t.problem_set_id]?.category || "Uncategorized"}</td>
                             ) : null}
                             <td>{getProblemSetDisplayId(t.problem_set_id, tests, t.source_set_ids, t)}</td>
-                            <td>{renderProblemSetDescription(t.problem_set_id, t.source_set_ids)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.starts_at)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.ends_at)}</td>
                             <td style={{ textAlign: "center" }}>
@@ -2321,13 +2376,94 @@ export default function AdminConsoleTestingTabs({
                                     <option value="">No daily tests</option>
                                   )}
                                 </select>
-                                {dailySessionForm.problem_set_id ? (
-                                  <div className="admin-help" style={{ marginTop: 4 }}>
-                                    {renderProblemSetDescription(dailySessionForm.problem_set_id)}
-                                  </div>
-                                ) : null}
+                                <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => openSpecificQuestionPicker("daily")}
+                                    disabled={!dailySessionForm.problem_set_id}
+                                    style={{
+                                      border: "none",
+                                      background: "none",
+                                      padding: 0,
+                                      margin: 0,
+                                      fontSize: 12,
+                                      lineHeight: 1.3,
+                                      textDecoration: "underline",
+                                      color: dailySessionForm.problem_set_id ? "#1d4ed8" : "#9ca3af",
+                                      cursor: dailySessionForm.problem_set_id ? "pointer" : "not-allowed",
+                                    }}
+                                  >
+                                    Select Specific Questions
+                                  </button>
+                                  {selectedDailySpecificQuestionCount > 0 ? (
+                                    <>
+                                      <span className="admin-help">Selected: {selectedDailySpecificQuestionCount}</span>
+                                      <button
+                                        type="button"
+                                        onClick={clearDailySpecificQuestionSelection}
+                                        style={{
+                                          border: "none",
+                                          background: "none",
+                                          padding: 0,
+                                          margin: 0,
+                                          fontSize: 12,
+                                          lineHeight: 1.3,
+                                          textDecoration: "underline",
+                                          color: "#1d4ed8",
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        Clear
+                                      </button>
+                                    </>
+                                  ) : null}
+                                </div>
                               </>
                             )}
+                            {dailySessionForm.selection_mode === "multiple" ? (
+                              <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openSpecificQuestionPicker("daily")}
+                                  disabled={!selectedDailyProblemSetIds.length}
+                                  style={{
+                                    border: "none",
+                                    background: "none",
+                                    padding: 0,
+                                    margin: 0,
+                                    fontSize: 12,
+                                    lineHeight: 1.3,
+                                    textDecoration: "underline",
+                                    color: selectedDailyProblemSetIds.length ? "#1d4ed8" : "#9ca3af",
+                                    cursor: selectedDailyProblemSetIds.length ? "pointer" : "not-allowed",
+                                  }}
+                                >
+                                  Select Specific Questions
+                                </button>
+                                {selectedDailySpecificQuestionCount > 0 ? (
+                                  <>
+                                    <span className="admin-help">Selected: {selectedDailySpecificQuestionCount}</span>
+                                    <button
+                                      type="button"
+                                      onClick={clearDailySpecificQuestionSelection}
+                                      style={{
+                                        border: "none",
+                                        background: "none",
+                                        padding: 0,
+                                        margin: 0,
+                                        fontSize: 12,
+                                        lineHeight: 1.3,
+                                        textDecoration: "underline",
+                                        color: "#1d4ed8",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      Clear
+                                    </button>
+                                  </>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
                           <div className="daily-session-create-field">
                             <label>Session Category</label>
@@ -2426,7 +2562,7 @@ export default function AdminConsoleTestingTabs({
                                   checked={dailySessionForm.question_count_mode === "specify"}
                                   onChange={() => setDailySessionForm((s) => ({ ...s, question_count_mode: "specify", random_order: true }))}
                                 />
-                                  <span className="daily-session-create-choice-copy">Specify</span>
+                                  <span className="daily-session-create-choice-copy">Select by random:</span>
                                 </label>
                                 <input
                                   className={`daily-session-create-count-input ${dailySessionForm.question_count_mode === "specify" ? "is-active" : ""}`}
@@ -2435,6 +2571,7 @@ export default function AdminConsoleTestingTabs({
                                   onChange={(e) => setDailySessionForm((s) => ({ ...s, question_count: e.target.value }))}
                                   placeholder=""
                                 />
+                                <span className="admin-help" style={{ color: "#1f2937" }}>questions</span>
                               </div>
                             </div>
                             <div className="daily-session-create-help" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -3256,6 +3393,187 @@ export default function AdminConsoleTestingTabs({
           ) : null}
         </>
       ) : null}
+      {typeof document !== "undefined" && specificQuestionPicker?.open ? createPortal((
+        <div className="admin-modal-overlay" onClick={closeSpecificQuestionPicker}>
+          <div
+            className="admin-modal admin-modal-wide daily-session-create-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 1100, width: "min(1100px, calc(100vw - 28px))" }}
+          >
+            <div className="admin-modal-header daily-session-create-header">
+              <div className="admin-title">
+                Select Specific Questions
+                {(specificQuestionPicker.setIds?.length ?? 0) > 1
+                  ? ` (${specificQuestionPicker.setIds.length} SetIDs)`
+                  : (specificQuestionPicker.setId ? ` (${specificQuestionPicker.setId})` : "")}
+              </div>
+              <button className="admin-modal-close" onClick={closeSpecificQuestionPicker} aria-label="Close">
+                &times;
+              </button>
+            </div>
+            <div style={{ padding: "12px 16px 16px", display: "grid", gap: 10, minHeight: "min(560px, calc(100vh - 140px))", gridTemplateRows: "auto auto 1fr auto" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                <div className="admin-help">
+                  Selected {Number(specificQuestionPicker.selectedQuestionDbIds?.length ?? 0)}
+                  {" / "}
+                  {Number(specificQuestionPicker.questions?.length ?? 0)}
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={selectAllSpecificQuestionsInPicker}
+                    disabled={specificQuestionPicker.loading || !(specificQuestionPicker.questions?.length)}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={clearSpecificQuestionsInPicker}
+                    disabled={specificQuestionPicker.loading || !(specificQuestionPicker.selectedQuestionDbIds?.length)}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+              <AdminStatusMessage message={specificQuestionPicker.msg} />
+              <div
+                className="daily-session-create-set-list"
+                style={{
+                  position: "relative",
+                  top: "auto",
+                  left: "auto",
+                  minWidth: 0,
+                  minHeight: 0,
+                  width: "100%",
+                  maxWidth: "100%",
+                  maxHeight: "none",
+                  overflowY: "auto",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 8,
+                  boxShadow: "none",
+                  padding: "8px 12px",
+                }}
+              >
+                {specificQuestionPicker.loading ? (
+                  <div className="daily-session-create-help" style={{ padding: 12 }}>
+                    <AdminLoadingState compact label="Loading questions..." />
+                  </div>
+                ) : null}
+                {!specificQuestionPicker.loading && !specificQuestionPicker.questions?.length ? (
+                  <div className="daily-session-create-help" style={{ padding: 12 }}>
+                    No questions found.
+                  </div>
+                ) : null}
+                {!specificQuestionPicker.loading && (specificQuestionPicker.questionSetGroups ?? []).map((group) => {
+                  const setId = String(group?.setId ?? "").trim();
+                  const questions = group?.questions ?? [];
+                  const selectedCount = questions.reduce((count, question) => {
+                    const questionDbId = String(question?.dbId ?? "").trim();
+                    if (!questionDbId) return count;
+                    return (specificQuestionPicker.selectedQuestionDbIds ?? []).includes(questionDbId)
+                      ? count + 1
+                      : count;
+                  }, 0);
+                  return (
+                    <div key={`specific-question-group-${setId || "unknown"}`} style={{ display: "grid", gap: 6, padding: "6px 0" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                        <div className="admin-help" style={{ fontWeight: 700, color: "#1f2937" }}>
+                          {setId || "SetID"}
+                          {questions.length ? ` (${selectedCount}/${questions.length})` : ""}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            onClick={() => selectAllSpecificQuestionsInPicker(setId)}
+                            disabled={!questions.length}
+                            style={{
+                              border: "none",
+                              background: "none",
+                              padding: 0,
+                              margin: 0,
+                              fontSize: 12,
+                              lineHeight: 1.3,
+                              textDecoration: "underline",
+                              color: questions.length ? "#1d4ed8" : "#9ca3af",
+                              cursor: questions.length ? "pointer" : "not-allowed",
+                            }}
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => clearSpecificQuestionsInPicker(setId)}
+                            disabled={!selectedCount}
+                            style={{
+                              border: "none",
+                              background: "none",
+                              padding: 0,
+                              margin: 0,
+                              fontSize: 12,
+                              lineHeight: 1.3,
+                              textDecoration: "underline",
+                              color: selectedCount ? "#1d4ed8" : "#9ca3af",
+                              cursor: selectedCount ? "pointer" : "not-allowed",
+                            }}
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                      </div>
+                      {questions.map((question, index) => {
+                        const questionDbId = String(question?.dbId ?? "").trim();
+                        if (!questionDbId) return null;
+                        const checked = (specificQuestionPicker.selectedQuestionDbIds ?? []).includes(questionDbId);
+                        const orderLabel = Number(question?.orderIndex ?? index + 1);
+                        return (
+                          <label
+                            key={`specific-question-${setId}-${questionDbId}`}
+                            className="daily-session-create-set-option"
+                          >
+                            <span className="daily-session-create-set-option-main" style={{ alignItems: "flex-start" }}>
+                              <input
+                                className="daily-session-create-set-option-check"
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleSpecificQuestionPickerQuestion(questionDbId)}
+                              />
+                              <span style={{ display: "grid", gap: 2 }}>
+                                <span className="daily-session-create-set-option-id">
+                                  Q{orderLabel}
+                                  {question?.questionId ? ` - ${question.questionId}` : ""}
+                                </span>
+                                <span className="daily-session-create-set-option-description">
+                                  {getSpecificQuestionPreviewText(question)}
+                                </span>
+                              </span>
+                            </span>
+                            <span className="daily-session-create-set-meta">{question?.sectionKey || "—"}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button className="btn" type="button" onClick={closeSpecificQuestionPicker}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={applySpecificQuestionsInPicker}
+                  disabled={specificQuestionPicker.loading}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ), document.body) : null}
       {typeof document !== "undefined" && editingSessionId && shouldRenderSharedSessionEditModal ? createPortal((
         <div className="admin-modal-overlay" onClick={cancelEditSession}>
           <div
