@@ -9,8 +9,6 @@ import { triggerRender } from "./renderBus";
 export function startTestTimer() {
   if (state.testStartAt) return;
   state.testStartAt = Date.now();
-  state.focusWarnings = 0;
-  state.tabLeftCount = 0;
   state.focusWarningAt = 0;
   saveState();
 }

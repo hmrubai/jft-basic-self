@@ -1066,6 +1066,7 @@ export default function AdminConsoleResultsWorkspace(props) {
     formatDateTime,
     formatOrdinal: formatOrdinalProp,
     getScoreRate,
+    getTabLeftCount = () => 0,
     renderTwoLineHeader: renderTwoLineHeaderProp,
     getSectionTitle,
     getQuestionSectionLabel,
@@ -3541,12 +3542,14 @@ export default function AdminConsoleResultsWorkspace(props) {
                     <th>Score</th>
                     <th>Rate</th>
                     <th>Status</th>
+                    <th>Tabs Left</th>
                   </tr>
                 </thead>
                 <tbody>
                       {sessionDetailDisplayAttempts.map((attempt, index) => {
                     const passed = getScoreRate(attempt) >= sessionDetailPassRate;
                     const isImportedAttempt = isImportedSummaryAttempt(attempt);
+                    const tabLeftCount = getTabLeftCount(attempt);
                     return (
                       <tr
                         key={`session-attempt-${attempt.id}`}
@@ -3560,12 +3563,13 @@ export default function AdminConsoleResultsWorkspace(props) {
                         <td>{isImportedAttempt ? "—" : `${attempt.correct}/${attempt.total}`}</td>
                         <td>{(getScoreRate(attempt) * 100).toFixed(1)}%</td>
                         <td className={passed ? "pf-pass" : "pf-fail"}>{passed ? "Pass" : "Fail"}</td>
+                        <td className={tabLeftCount > 0 ? "attempt-detail-warn-value" : ""}>{isImportedAttempt ? "—" : tabLeftCount}</td>
                       </tr>
                     );
                   })}
                   {!sessionDetailDisplayAttempts.length ? (
                     <tr>
-                      <td colSpan={7}>No attempts yet.</td>
+                      <td colSpan={8}>No attempts yet.</td>
                     </tr>
                   ) : null}
                 </tbody>
