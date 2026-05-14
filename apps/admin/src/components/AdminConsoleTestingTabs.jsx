@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLoadingState from "./AdminLoadingState";
 import AdminStatusMessage from "./AdminStatusMessage";
 import QuestionSetUploadConflictModal from "./QuestionSetUploadConflictModal";
+import { useLanguage } from "../lib/i18n";
 
 const STUDENT_CODE_COLLATOR = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
 const DEFAULT_RETAKE_RELEASE_SCOPE = "failed_and_absent";
@@ -194,6 +195,8 @@ export default function AdminConsoleTestingTabs({
   setDailyFiles,
   uploadDailyAssets,
 }) {
+  const { t } = useLanguage();
+
   function hasResolvedQuestionCount(item) {
     if (!item) return false;
     const value = item.question_count;
@@ -209,7 +212,7 @@ export default function AdminConsoleTestingTabs({
     return (
       <span
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-        aria-label={questionCountLoadingVersions?.[item?.version] ? "Loading question count" : "Question count pending"}
+        aria-label={questionCountLoadingVersions?.[item?.version] ? t("Loading question count") : t("Question count pending")}
       >
         <span className="attendance-import-status-spinner admin-loading-spinner" aria-hidden="true" />
       </span>
@@ -400,12 +403,12 @@ export default function AdminConsoleTestingTabs({
       ? Array.from(new Set(session.audience_student_ids.map((id) => String(id ?? "").trim()).filter(Boolean)))
       : [];
     if (mode === "include") {
-      return ids.length ? `Only ${ids.length} student${ids.length === 1 ? "" : "s"}` : "Only selected students";
+      return ids.length ? `Only ${ids.length} student${ids.length === 1 ? "" : "s"}` : t("Only selected students");
     }
     if (mode === "exclude") {
-      return ids.length ? `Exclude ${ids.length} student${ids.length === 1 ? "" : "s"}` : "All students";
+      return ids.length ? `Exclude ${ids.length} student${ids.length === 1 ? "" : "s"}` : t("All students");
     }
-    return "All students";
+    return t("All students");
   }
 
   function renderStudentAudiencePicker({ modeValue, selectedIds, onModeChange, onSelectedIdsChange, prefix }) {
@@ -422,7 +425,7 @@ export default function AdminConsoleTestingTabs({
 
     return (
       <div className="daily-session-create-field" style={{ gridColumn: "1 / -1" }}>
-        <label>Who can take this session?</label>
+        <label>{t("Who can take this session?")}</label>
         <select
           value={modeValue}
           onChange={(e) => {
@@ -430,26 +433,26 @@ export default function AdminConsoleTestingTabs({
             onModeChange(e.target.value);
           }}
         >
-          <option value="all">All students in the school</option>
-          <option value="exclude">Exclude certain students</option>
-          <option value="include">Only certain students</option>
+          <option value="all">{t("All students in the school")}</option>
+          <option value="exclude">{t("Exclude certain students")}</option>
+          <option value="include">{t("Only certain students")}</option>
         </select>
         {modeValue !== "all" ? (
           <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#fafafa" }}>
             <div className="admin-help" style={{ marginBottom: 8 }}>
               {modeValue === "include"
-                ? "Select the students who should see and take this session."
-                : "Select the students who should be hidden from this session."}
+                ? t("Select the students who should see and take this session.")
+                : t("Select the students who should be hidden from this session.")}
             </div>
             <input
               className="form-input"
               value={studentAudienceSearch}
               onChange={(e) => setStudentAudienceSearch(e.target.value)}
-              placeholder="Search students..."
+              placeholder={t("Search students...")}
             />
             <div className="session-audience-picker-list">
               {!studentsLoaded && !sortedStudents.length ? (
-                <AdminLoadingState compact label="Loading students..." />
+                <AdminLoadingState compact label={t("Loading students...")} />
               ) : filteredStudents.length ? (
                 filteredStudents.map((student) => {
                   const studentId = String(student?.id ?? "").trim();
@@ -482,8 +485,8 @@ export default function AdminConsoleTestingTabs({
               ) : (
                 <div className="admin-help">
                   {studentAudienceSearch.trim()
-                    ? "No students match this search."
-                    : "No students found for this school."}
+                    ? t("No students match this search.")
+                    : t("No students found for this school.")}
                 </div>
               )}
             </div>
@@ -495,7 +498,7 @@ export default function AdminConsoleTestingTabs({
           </div>
         ) : (
           <div className="admin-help" style={{ marginTop: 6 }}>
-            Everyone in the school can see this session in the student panel.
+            {t("Everyone in the school can see this session in the student panel.")}
           </div>
         )}
       </div>
@@ -541,7 +544,7 @@ export default function AdminConsoleTestingTabs({
                             strokeLinecap="round"
                           />
                         </svg>
-                        Create Test Session
+                        {t("Create Test Session")}
                       </button>
                       <button className="btn btn-retake admin-compact-action-btn admin-upload-cta-btn" onClick={() => openModelConductModal("retake")}>
                         <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -578,15 +581,15 @@ export default function AdminConsoleTestingTabs({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        Create Retake Session
+                        {t("Create Retake Session")}
                       </button>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <button
                       className="btn admin-icon-action-btn"
-                      aria-label="Refresh sessions"
-                      title="Refresh sessions"
+                      aria-label={t("Refresh sessions")}
+                      title={t("Refresh sessions")}
                       onClick={() => {
                         fetchTestSessions();
                         fetchExamLinks();
@@ -650,29 +653,29 @@ export default function AdminConsoleTestingTabs({
                       </colgroup>
                       <thead>
                         <tr>
-                          <th>Test Title</th>
-                          <th>Category</th>
-                          <th>SetID</th>
-                          <th style={{ minWidth: 100, textAlign: "left" }}>Start</th>
-                          <th style={{ minWidth: 120, textAlign: "left" }}>End</th>
-                          <th>Questions</th>
-                          <th>Time</th>
-                          <th>Pass Rate</th>
-                          <th>Show Answers</th>
-                          <th style={{ minWidth: 102 }}>Multiple Attempts</th>
-                          <th>Audience</th>
-                          <th style={{ minWidth: 100 }}>Created</th>
-                          <th style={{ textAlign: "center" }}>Action</th>
-                          <th style={{ textAlign: "center" }}>Preview</th>
-                          <th style={{ textAlign: "center" }}>Edit</th>
-                          <th style={{ textAlign: "center" }}>Delete</th>
+                          <th>{t("Test Title")}</th>
+                          <th>{t("Category")}</th>
+                          <th>{t("SetID")}</th>
+                          <th style={{ minWidth: 100, textAlign: "left" }}>{t("Start")}</th>
+                          <th style={{ minWidth: 120, textAlign: "left" }}>{t("End")}</th>
+                          <th>{t("Questions")}</th>
+                          <th>{t("Time")}</th>
+                          <th>{t("Pass Rate")}</th>
+                          <th>{t("Show Answers")}</th>
+                          <th style={{ minWidth: 102 }}>{t("Multiple Attempts")}</th>
+                          <th>{t("Audience")}</th>
+                          <th style={{ minWidth: 100 }}>{t("Created")}</th>
+                          <th style={{ textAlign: "center" }}>{t("Action")}</th>
+                          <th style={{ textAlign: "center" }}>{t("Preview")}</th>
+                          <th style={{ textAlign: "center" }}>{t("Edit")}</th>
+                          <th style={{ textAlign: "center" }}>{t("Delete")}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredModelSessions.map((t) => (
                           <tr key={t.id} {...getSessionRowProps(t, "mock")}>
                             <td>{t.title ?? ""}</td>
-                            <td>{testMetaByVersion[t.problem_set_id]?.category || "Uncategorized"}</td>
+                            <td>{testMetaByVersion[t.problem_set_id]?.category || t("Uncategorized")}</td>
                             <td>{getProblemSetDisplayId(t.problem_set_id, tests, t.source_set_ids, t)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.starts_at)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.ends_at)}</td>
@@ -686,8 +689,8 @@ export default function AdminConsoleTestingTabs({
                             </td>
                             <td>{t.time_limit_min ?? ""}</td>
                             <td>{`${(getSessionEffectivePassRate(t) * 100).toFixed(0)}%`}</td>
-                            <td>{t.show_answers ? "Yes" : "No"}</td>
-                            <td>{t.allow_multiple_attempts === false ? "Only once" : "Allow multiple"}</td>
+                            <td>{t.show_answers ? t("Yes") : t("No")}</td>
+                            <td>{t.allow_multiple_attempts === false ? t("Only once") : t("Allow multiple")}</td>
                             <td>{getSessionAudienceSummary(t)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.created_at)}</td>
                             <td style={{ textAlign: "center" }}>
@@ -699,7 +702,7 @@ export default function AdminConsoleTestingTabs({
                                     copyLink(linkBySession[t.id].id);
                                   }}
                                 >
-                                  Copy URL
+                                  {t("Copy URL")}
                                 </button>
                               ) : (
                                 ""
@@ -713,17 +716,17 @@ export default function AdminConsoleTestingTabs({
                                   openSessionPreview(t);
                                 }}
                               >
-                                Preview
+                                {t("Preview")}
                               </button>
                             </td>
                             <td style={{ textAlign: "center" }}>
                               <button className="btn" onClick={(e) => { e.stopPropagation(); startEditSession(t); }}>
-                                Edit
+                                {t("Edit")}
                               </button>
                             </td>
                             <td style={{ textAlign: "center" }}>
                               <button className="btn btn-danger" onClick={(e) => { e.stopPropagation(); deleteTestSession(t.id); }}>
-                                Delete
+                                {t("Delete")}
                               </button>
                             </td>
                           </tr>
@@ -752,7 +755,7 @@ export default function AdminConsoleTestingTabs({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="admin-modal-header daily-session-create-header">
-                      <div className="admin-title">{modelConductMode === "retake" ? "Conduct Model Retake" : "Create Model Test Session"}</div>
+                      <div className="admin-title">{modelConductMode === "retake" ? t("Conduct Model Retake") : t("Create Model Test Session")}</div>
                       <button
                         className="admin-modal-close"
                         onClick={() => {
@@ -762,7 +765,7 @@ export default function AdminConsoleTestingTabs({
                           setActiveModelTimePicker("");
                           setModelConductError("");
                         }}
-                        aria-label="Close"
+                        aria-label={t("Close")}
                       >
                         &times;
                       </button>
@@ -778,7 +781,7 @@ export default function AdminConsoleTestingTabs({
                       {modelConductMode === "retake" ? (
                         <div className="daily-session-create-layout">
                           <div className="daily-session-create-field">
-                            <label>Original Session</label>
+                            <label>{t("Original Session")}</label>
                             <select
                               value={modelRetakeSourceId}
                               onChange={(e) => selectModelRetakeSource(e.target.value)}
@@ -793,32 +796,32 @@ export default function AdminConsoleTestingTabs({
                                   </option>
                                 ))
                               ) : (
-                                <option value="">No past model sessions</option>
+                                <option value="">{t("No past model sessions")}</option>
                               )}
                             </select>
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Release To</label>
+                            <label>{t("Release To")}</label>
                             <select
                               value={normalizeRetakeReleaseScope(testSessionForm.retake_release_scope)}
                               onChange={(e) => setTestSessionForm((s) => ({ ...s, retake_release_scope: e.target.value }))}
                             >
-                              <option value="all">All students</option>
-                              <option value="failed_and_absent">Failed / Absent</option>
-                              <option value="absent_only">Absent</option>
+                              <option value="all">{t("All students")}</option>
+                              <option value="failed_and_absent">{t("Failed / Absent")}</option>
+                              <option value="absent_only">{t("Absent")}</option>
                             </select>
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Test Title</label>
+                            <label>{t("Test Title")}</label>
                             <input
                               value={testSessionForm.title}
                               onChange={(e) => setTestSessionForm((s) => ({ ...s, title: e.target.value }))}
-                              placeholder="Mock Test (Retake)"
+                              placeholder={t("Mock Test (Retake)")}
                             />
                           </div>
                           <div className="daily-session-create-split-row">
                             <div className="daily-session-create-field">
-                              <label>Date</label>
+                              <label>{t("Date")}</label>
                               <input
                                 type="date"
                                 value={testSessionForm.session_date}
@@ -826,7 +829,7 @@ export default function AdminConsoleTestingTabs({
                               />
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Start Time</label>
+                              <label>{t("Start Time")}</label>
                               <div className="daily-session-create-time-picker-wrap" data-model-time-picker>
                                 {(() => {
                                   const startTimeParts = getTwelveHourTimeParts(testSessionForm.start_time);
@@ -844,7 +847,7 @@ export default function AdminConsoleTestingTabs({
                                         <span className={`daily-session-create-multi-arrow ${isOpen ? "open" : ""}`}>▾</span>
                                       </button>
                                       {isOpen ? (
-                                        <div className="daily-session-create-time-popover" role="dialog" aria-label="Select model retake start time">
+                                        <div className="daily-session-create-time-popover" role="dialog" aria-label={t("Select model retake start time")}>
                                           <div className="daily-session-create-time-columns">
                                             <div className="daily-session-create-time-column">
                                               {TWELVE_HOUR_TIME_OPTIONS.map((hourValue) => (
@@ -891,7 +894,7 @@ export default function AdminConsoleTestingTabs({
                               </div>
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Close Time</label>
+                              <label>{t("Close Time")}</label>
                               <div className="daily-session-create-time-picker-wrap" data-model-time-picker>
                                 {(() => {
                                   const closeTimeParts = getTwelveHourTimeParts(testSessionForm.close_time);
@@ -909,7 +912,7 @@ export default function AdminConsoleTestingTabs({
                                         <span className={`daily-session-create-multi-arrow ${isOpen ? "open" : ""}`}>▾</span>
                                       </button>
                                       {isOpen ? (
-                                        <div className="daily-session-create-time-popover" role="dialog" aria-label="Select model retake close time">
+                                        <div className="daily-session-create-time-popover" role="dialog" aria-label={t("Select model retake close time")}>
                                           <div className="daily-session-create-time-columns">
                                             <div className="daily-session-create-time-column">
                                               {TWELVE_HOUR_TIME_OPTIONS.map((hourValue) => (
@@ -958,7 +961,7 @@ export default function AdminConsoleTestingTabs({
                           </div>
                           <div className="daily-session-create-two-col">
                             <div className="daily-session-create-field">
-                              <label>Time Limit (min)</label>
+                              <label>{t("Time Limit (min)")}</label>
                               <input
                                 value={testSessionForm.time_limit_min}
                                 onChange={(e) => setTestSessionForm((s) => ({ ...s, time_limit_min: e.target.value }))}
@@ -966,7 +969,7 @@ export default function AdminConsoleTestingTabs({
                               />
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Pass Rate</label>
+                              <label>{t("Pass Rate")}</label>
                               <input
                                 value={testSessionForm.pass_rate}
                                 onChange={(e) => setTestSessionForm((s) => ({ ...s, pass_rate: e.target.value }))}
@@ -975,8 +978,8 @@ export default function AdminConsoleTestingTabs({
                             </div>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Show Answers</span>
-                            <label className="daily-session-create-switch" aria-label="Show Answers">
+                            <span>{t("Show Answers")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Show Answers")}>
                               <input
                                 type="checkbox"
                                 checked={testSessionForm.show_answers}
@@ -986,8 +989,8 @@ export default function AdminConsoleTestingTabs({
                             </label>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Allow Multiple Attempts</span>
-                            <label className="daily-session-create-switch" aria-label="Allow Multiple Attempts">
+                            <span>{t("Allow Multiple Attempts")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Allow Multiple Attempts")}>
                               <input
                                 type="checkbox"
                                 checked={testSessionForm.allow_multiple_attempts}
@@ -1003,7 +1006,7 @@ export default function AdminConsoleTestingTabs({
                               onClick={createTestSession}
                               disabled={!modelRetakeSourceId}
                             >
-                              Create Session
+                              {t("Create Session")}
                             </button>
                           </div>
                           <AdminStatusMessage message={testSessionsMsg} />
@@ -1011,14 +1014,14 @@ export default function AdminConsoleTestingTabs({
                       ) : (
                         <div className="daily-session-create-layout">
                           <div className="daily-session-create-field">
-                            <label>Category</label>
+                            <label>{t("Category")}</label>
                             <select
                               value={modelConductCategory}
                               onChange={(e) => setModelConductCategory(e.target.value)}
                             >
                               {modelCategories.length ? (
                                 <>
-                                  <option value="">Select category</option>
+                                  <option value="">{t("Select category")}</option>
                                   {modelCategories.map((c) => (
                                     <option key={`model-cat-${c.name}`} value={c.name}>
                                       {c.name}
@@ -1026,12 +1029,12 @@ export default function AdminConsoleTestingTabs({
                                   ))}
                                 </>
                               ) : (
-                                <option value="">No categories</option>
+                                <option value="">{t("No categories")}</option>
                               )}
                             </select>
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Set ID</label>
+                            <label>{t("Set ID")}</label>
                             <select
                               value={testSessionForm.problem_set_id}
                               onChange={(e) => {
@@ -1039,7 +1042,7 @@ export default function AdminConsoleTestingTabs({
                                 setTestSessionForm((s) => ({ ...s, problem_set_id: e.target.value }));
                               }}
                             >
-                              <option value="">Select SetID</option>
+                              <option value="">{t("Select SetID")}</option>
                               {modelConductTests.length ? (
                                 modelConductTests.map((t) => (
                                   <option key={`ps-${t.version}`} value={t.version}>
@@ -1047,7 +1050,7 @@ export default function AdminConsoleTestingTabs({
                                   </option>
                                 ))
                               ) : (
-                                <option value="">No problem sets</option>
+                                <option value="">{t("No problem sets")}</option>
                               )}
                             </select>
                             <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -1067,11 +1070,11 @@ export default function AdminConsoleTestingTabs({
                                   cursor: testSessionForm.problem_set_id ? "pointer" : "not-allowed",
                                 }}
                               >
-                                Select Specific Questions
+                                {t("Select Specific Questions")}
                               </button>
                               {selectedModelSpecificQuestionCount > 0 ? (
                                 <>
-                                  <span className="admin-help">Selected: {selectedModelSpecificQuestionCount}</span>
+                                  <span className="admin-help">{t("Selected:")} {selectedModelSpecificQuestionCount}</span>
                                   <button
                                     type="button"
                                     onClick={clearModelSpecificQuestionSelection}
@@ -1087,28 +1090,28 @@ export default function AdminConsoleTestingTabs({
                                       cursor: "pointer",
                                     }}
                                   >
-                                    Clear
+                                    {t("Clear")}
                                   </button>
                                 </>
                               ) : null}
                             </div>
                             {modelConductCategory && !modelConductTests.length ? (
                               <div className="admin-help" style={{ marginTop: 4 }}>
-                                No SetIDs have been uploaded yet for this category.
+                                {t("No SetIDs have been uploaded yet for this category.")}
                               </div>
                             ) : null}
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Test Title</label>
+                            <label>{t("Test Title")}</label>
                             <input
                               value={testSessionForm.title}
                               onChange={(e) => setTestSessionForm((s) => ({ ...s, title: e.target.value }))}
-                              placeholder="Mock Test"
+                              placeholder={t("Mock Test")}
                             />
                           </div>
                           <div className="daily-session-create-split-row">
                             <div className="daily-session-create-field">
-                              <label>Date</label>
+                              <label>{t("Date")}</label>
                               <input
                                 type="date"
                                 value={testSessionForm.session_date}
@@ -1116,7 +1119,7 @@ export default function AdminConsoleTestingTabs({
                               />
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Start Time</label>
+                              <label>{t("Start Time")}</label>
                               <div className="daily-session-create-time-picker-wrap" data-model-time-picker>
                                 {(() => {
                                   const startTimeParts = getTwelveHourTimeParts(testSessionForm.start_time);
@@ -1134,7 +1137,7 @@ export default function AdminConsoleTestingTabs({
                                         <span className={`daily-session-create-multi-arrow ${isOpen ? "open" : ""}`}>▾</span>
                                       </button>
                                       {isOpen ? (
-                                        <div className="daily-session-create-time-popover" role="dialog" aria-label="Select model start time">
+                                        <div className="daily-session-create-time-popover" role="dialog" aria-label={t("Select model start time")}>
                                           <div className="daily-session-create-time-columns">
                                             <div className="daily-session-create-time-column">
                                               {TWELVE_HOUR_TIME_OPTIONS.map((hourValue) => (
@@ -1181,7 +1184,7 @@ export default function AdminConsoleTestingTabs({
                               </div>
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Close Time</label>
+                              <label>{t("Close Time")}</label>
                               <div className="daily-session-create-time-picker-wrap" data-model-time-picker>
                                 {(() => {
                                   const closeTimeParts = getTwelveHourTimeParts(testSessionForm.close_time);
@@ -1199,7 +1202,7 @@ export default function AdminConsoleTestingTabs({
                                         <span className={`daily-session-create-multi-arrow ${isOpen ? "open" : ""}`}>▾</span>
                                       </button>
                                       {isOpen ? (
-                                        <div className="daily-session-create-time-popover" role="dialog" aria-label="Select model close time">
+                                        <div className="daily-session-create-time-popover" role="dialog" aria-label={t("Select model close time")}>
                                           <div className="daily-session-create-time-columns">
                                             <div className="daily-session-create-time-column">
                                               {TWELVE_HOUR_TIME_OPTIONS.map((hourValue) => (
@@ -1248,7 +1251,7 @@ export default function AdminConsoleTestingTabs({
                           </div>
                           <div className="daily-session-create-two-col">
                             <div className="daily-session-create-field">
-                              <label>Time Limit (min)</label>
+                              <label>{t("Time Limit (min)")}</label>
                               <input
                                 value={testSessionForm.time_limit_min}
                                 onChange={(e) => setTestSessionForm((s) => ({ ...s, time_limit_min: e.target.value }))}
@@ -1256,7 +1259,7 @@ export default function AdminConsoleTestingTabs({
                               />
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Pass Rate</label>
+                              <label>{t("Pass Rate")}</label>
                               <input
                                 value={testSessionForm.pass_rate}
                                 onChange={(e) => setTestSessionForm((s) => ({ ...s, pass_rate: e.target.value }))}
@@ -1265,8 +1268,8 @@ export default function AdminConsoleTestingTabs({
                             </div>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Show Answers</span>
-                            <label className="daily-session-create-switch" aria-label="Show Answers">
+                            <span>{t("Show Answers")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Show Answers")}>
                               <input
                                 type="checkbox"
                                 checked={testSessionForm.show_answers}
@@ -1276,8 +1279,8 @@ export default function AdminConsoleTestingTabs({
                             </label>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Allow Multiple Attempts</span>
-                            <label className="daily-session-create-switch" aria-label="Allow Multiple Attempts">
+                            <span>{t("Allow Multiple Attempts")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Allow Multiple Attempts")}>
                               <input
                                 type="checkbox"
                                 checked={testSessionForm.allow_multiple_attempts}
@@ -1308,7 +1311,7 @@ export default function AdminConsoleTestingTabs({
                               type="button"
                               onClick={createTestSession}
                             >
-                              Create Session
+                              {t("Create Session")}
                             </button>
                           </div>
                           <AdminStatusMessage message={testSessionsMsg} />
@@ -1334,7 +1337,7 @@ export default function AdminConsoleTestingTabs({
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                      <div className="admin-title">Set Upload (CSV)</div>
+                      <div className="admin-title">{t("Set Upload (CSV)")}</div>
                       <button
                         className="btn btn-primary admin-compact-action-btn admin-upload-cta-btn"
                         onClick={openModelUploadModal}
@@ -1364,7 +1367,7 @@ export default function AdminConsoleTestingTabs({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        Upload Question Set
+                        {t("Upload Question Set")}
                       </button>
                     </div>
                   </div>
@@ -1375,7 +1378,7 @@ export default function AdminConsoleTestingTabs({
                     className={`admin-mini-tab results-category-tab ${!modelUploadCategory ? "active" : ""}`}
                     onClick={() => setModelUploadCategory("")}
                   >
-                    All
+                    {t("All")}
                   </button>
                   {groupedModelUploadTests.map((category) => (
                     <button
@@ -1399,15 +1402,15 @@ export default function AdminConsoleTestingTabs({
                         <table className="admin-table" style={{ minWidth: 1040 }}>
                           <thead>
                             <tr>
-                              <th>Category</th>
-                              <th>SetID</th>
-                              <th>Description</th>
-                              <th>Ver.</th>
-                              <th style={compactDateColumnStyle}>Created</th>
-                              <th style={{ width: 72, textAlign: "center" }}>Questions</th>
-                              <th>Preview</th>
-                              <th>Edit</th>
-                              <th>Delete</th>
+                              <th>{t("Category")}</th>
+                              <th>{t("SetID")}</th>
+                              <th>{t("Description")}</th>
+                              <th>{t("Ver.")}</th>
+                              <th style={compactDateColumnStyle}>{t("Created")}</th>
+                              <th style={{ width: 72, textAlign: "center" }}>{t("Questions")}</th>
+                              <th>{t("Preview")}</th>
+                              <th>{t("Edit")}</th>
+                              <th>{t("Delete")}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1430,7 +1433,7 @@ export default function AdminConsoleTestingTabs({
                                       openPreview(t.version);
                                     }}
                                   >
-                                    Preview
+                                    {t("Preview")}
                                   </button>
                                 </td>
                                 <td>
@@ -1441,7 +1444,7 @@ export default function AdminConsoleTestingTabs({
                                       startEditTest(t, modelCategories);
                                     }}
                                   >
-                                    Edit
+                                    {t("Edit")}
                                   </button>
                                 </td>
                                 <td>
@@ -1452,7 +1455,7 @@ export default function AdminConsoleTestingTabs({
                                       deleteTest(t.version);
                                     }}
                                   >
-                                    Delete
+                                    {t("Delete")}
                                   </button>
                                 </td>
                               </tr>
@@ -1463,7 +1466,7 @@ export default function AdminConsoleTestingTabs({
                     </div>
                   ))}
                 </div>
-                {groupedModelUploadTests.length === 0 ? <AdminStatusMessage message={testsMsg || "No sets found."} /> : null}
+                {groupedModelUploadTests.length === 0 ? <AdminStatusMessage message={testsMsg || t("No sets found.")} /> : null}
                 {!modelUploadOpen ? <AdminStatusMessage message={assetUploadMsg} /> : null}
                 {!modelUploadOpen && assetImportMsg ? (
                   <pre className="admin-msg" style={{ whiteSpace: "pre-wrap" }}>
@@ -1477,8 +1480,8 @@ export default function AdminConsoleTestingTabs({
                   <div className="admin-modal-overlay" onClick={() => setModelUploadOpen(false)}>
                     <div className="admin-modal upload-question-modal" onClick={(e) => e.stopPropagation()}>
                       <div className="admin-modal-header">
-                        <div className="admin-title">Upload Model Questions</div>
-                        <button className="admin-modal-close" onClick={() => setModelUploadOpen(false)} aria-label="Close">
+                        <div className="admin-title">{t("Upload Model Questions")}</div>
+                        <button className="admin-modal-close" onClick={() => setModelUploadOpen(false)} aria-label={t("Close")}>
                           &times;
                         </button>
                       </div>
@@ -1491,7 +1494,7 @@ export default function AdminConsoleTestingTabs({
 
                       <div className="admin-form upload-question-form" style={{ marginTop: 10 }}>
                         <div className="field">
-                          <label>Category</label>
+                          <label>{t("Category")}</label>
                           <select
                             value={assetCategorySelect}
                             onChange={(e) => {
@@ -1519,7 +1522,7 @@ export default function AdminConsoleTestingTabs({
                           ) : null}
                         </div>
                         <div className="field">
-                          <label>CSV File (required)</label>
+                          <label>{t("CSV File (required)")}</label>
                           <input
                             type="file"
                             accept=".csv,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg"
@@ -1538,7 +1541,7 @@ export default function AdminConsoleTestingTabs({
                           ) : null}
                         </div>
                         <div className="field">
-                          <label>Folder (PNG/MP3/M4A)</label>
+                          <label>{t("Folder (PNG/MP3/M4A)")}</label>
                           <div className="upload-question-picker">
                             <input
                               ref={assetFolderInputRef}
@@ -1603,7 +1606,7 @@ export default function AdminConsoleTestingTabs({
                                 />
                               </svg>
                             )}
-                            {isModelUploadBusy ? "Uploading..." : "Upload & Register Set"}
+                            {isModelUploadBusy ? t("Uploading...") : t("Upload & Register Set")}
                           </button>
                         </div>
                       </div>
@@ -1633,7 +1636,7 @@ export default function AdminConsoleTestingTabs({
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                      <div className="admin-title">Daily Test Sessions</div>
+                      <div className="admin-title">{t("Daily Test Sessions")}</div>
                       <button className="btn btn-primary admin-compact-action-btn admin-upload-cta-btn" onClick={() => openDailyConductModal("normal")}>
                         <svg viewBox="0 0 20 20" aria-hidden="true">
                           <path
@@ -1644,7 +1647,7 @@ export default function AdminConsoleTestingTabs({
                             strokeLinecap="round"
                           />
                         </svg>
-                        Create Test Session
+                        {t("Create Test Session")}
                       </button>
                       <button className="btn btn-retake admin-compact-action-btn admin-upload-cta-btn" onClick={() => openDailyConductModal("retake")}>
                         <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -1681,15 +1684,15 @@ export default function AdminConsoleTestingTabs({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        Create Retake Session
+                        {t("Create Retake Session")}
                       </button>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <button
                       className="btn admin-icon-action-btn"
-                      aria-label="Refresh sessions"
-                      title="Refresh sessions"
+                      aria-label={t("Refresh sessions")}
+                      title={t("Refresh sessions")}
                       onClick={() => {
                         fetchTestSessions();
                         fetchExamLinks();
@@ -1754,22 +1757,22 @@ export default function AdminConsoleTestingTabs({
                       </colgroup>
                       <thead>
                         <tr>
-                          <th>Test Title</th>
-                          {showDailySessionCategories ? <th>Category</th> : null}
-                          <th>SetID</th>
-                          <th style={{ minWidth: 100, textAlign: "left" }}>Start</th>
-                          <th style={{ minWidth: 120, textAlign: "left" }}>End</th>
-                          <th>Questions</th>
-                          <th>Time</th>
-                          <th>Pass Rate</th>
-                          <th><span className="daily-sessions-show-answers-head">Show Answers</span></th>
-                          <th style={{ minWidth: 102 }}>Multiple Attempts</th>
-                          <th>Audience</th>
-                          <th style={{ minWidth: 100 }}>Created</th>
-                          <th style={{ textAlign: "center" }}>Action</th>
-                          <th style={{ textAlign: "center" }}>Preview</th>
-                          <th style={{ textAlign: "center" }}>Edit</th>
-                          <th style={{ textAlign: "center" }}>Delete</th>
+                          <th>{t("Test Title")}</th>
+                          {showDailySessionCategories ? <th>{t("Category")}</th> : null}
+                          <th>{t("SetID")}</th>
+                          <th style={{ minWidth: 100, textAlign: "left" }}>{t("Start")}</th>
+                          <th style={{ minWidth: 120, textAlign: "left" }}>{t("End")}</th>
+                          <th>{t("Questions")}</th>
+                          <th>{t("Time")}</th>
+                          <th>{t("Pass Rate")}</th>
+                          <th><span className="daily-sessions-show-answers-head">{t("Show Answers")}</span></th>
+                          <th style={{ minWidth: 102 }}>{t("Multiple Attempts")}</th>
+                          <th>{t("Audience")}</th>
+                          <th style={{ minWidth: 100 }}>{t("Created")}</th>
+                          <th style={{ textAlign: "center" }}>{t("Action")}</th>
+                          <th style={{ textAlign: "center" }}>{t("Preview")}</th>
+                          <th style={{ textAlign: "center" }}>{t("Edit")}</th>
+                          <th style={{ textAlign: "center" }}>{t("Delete")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1777,7 +1780,7 @@ export default function AdminConsoleTestingTabs({
                           <tr key={t.id} {...getSessionRowProps(t, "daily")}>
                             <td>{t.title ?? ""}</td>
                             {showDailySessionCategories ? (
-                              <td>{String(t.session_category ?? "").trim() || testMetaByVersion[t.problem_set_id]?.category || "Uncategorized"}</td>
+                              <td>{String(t.session_category ?? "").trim() || testMetaByVersion[t.problem_set_id]?.category || t("Uncategorized")}</td>
                             ) : null}
                             <td>{getProblemSetDisplayId(t.problem_set_id, tests, t.source_set_ids, t)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.starts_at)}</td>
@@ -1792,8 +1795,8 @@ export default function AdminConsoleTestingTabs({
                             </td>
                             <td>{t.time_limit_min ?? ""}</td>
                             <td>{`${(getSessionEffectivePassRate(t) * 100).toFixed(0)}%`}</td>
-                            <td>{t.show_answers ? "Yes" : "No"}</td>
-                            <td>{t.allow_multiple_attempts === false ? "Only once" : "Allow multiple"}</td>
+                            <td>{t.show_answers ? t("Yes") : t("No")}</td>
+                            <td>{t.allow_multiple_attempts === false ? t("Only once") : t("Allow multiple")}</td>
                             <td>{getSessionAudienceSummary(t)}</td>
                             <td style={{ textAlign: "left" }}>{renderCompactDateTime(t.created_at)}</td>
                             <td style={{ textAlign: "center" }}>
@@ -1805,7 +1808,7 @@ export default function AdminConsoleTestingTabs({
                                     copyLink(linkBySession[t.id].id);
                                   }}
                                 >
-                                  Copy URL
+                                  {t("Copy URL")}
                                 </button>
                               ) : (
                                 ""
@@ -1819,17 +1822,17 @@ export default function AdminConsoleTestingTabs({
                                   openSessionPreview(t);
                                 }}
                               >
-                                Preview
+                                {t("Preview")}
                               </button>
                             </td>
                             <td style={{ textAlign: "center" }}>
                               <button className="btn" onClick={(e) => { e.stopPropagation(); startEditSession(t); }}>
-                                Edit
+                                {t("Edit")}
                               </button>
                             </td>
                             <td style={{ textAlign: "center" }}>
                               <button className="btn btn-danger" onClick={(e) => { e.stopPropagation(); deleteTestSession(t.id); }}>
-                                Delete
+                                {t("Delete")}
                               </button>
                             </td>
                           </tr>
@@ -1860,7 +1863,7 @@ export default function AdminConsoleTestingTabs({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="admin-modal-header daily-session-create-header">
-                      <div className="admin-title">{dailyConductMode === "retake" ? "Conduct Daily Retake" : "Create Daily Test Session"}</div>
+                      <div className="admin-title">{dailyConductMode === "retake" ? t("Conduct Daily Retake") : t("Create Daily Test Session")}</div>
                       <button
                         className="admin-modal-close"
                         onClick={() => {
@@ -1872,7 +1875,7 @@ export default function AdminConsoleTestingTabs({
                           setActiveDailyTimePicker("");
                           setDailyConductError("");
                         }}
-                        aria-label="Close"
+                        aria-label={t("Close")}
                       >
                         &times;
                       </button>
@@ -1888,7 +1891,7 @@ export default function AdminConsoleTestingTabs({
                       {dailyConductMode === "retake" ? (
                         <div className="daily-session-create-layout">
                           <div className="daily-session-create-field">
-                            <label>Session Category</label>
+                            <label>{t("Session Category")}</label>
                             <select
                               value={dailyRetakeCategory}
                               onChange={(e) => {
@@ -1903,12 +1906,12 @@ export default function AdminConsoleTestingTabs({
                                   </option>
                                 ))
                               ) : (
-                                <option value="">No past daily session categories</option>
+                                <option value="">{t("No past daily session categories")}</option>
                               )}
                             </select>
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Original Session</label>
+                            <label>{t("Original Session")}</label>
                             <select
                               value={dailyRetakeSourceId}
                               onChange={(e) => selectDailyRetakeSource(e.target.value)}
@@ -1924,33 +1927,33 @@ export default function AdminConsoleTestingTabs({
                                 ))
                               ) : (
                                 <option value="">
-                                  {dailyRetakeCategory ? "No past daily sessions in this category" : "No past daily sessions"}
+                                  {dailyRetakeCategory ? t("No past daily sessions in this category") : t("No past daily sessions")}
                                 </option>
                               )}
                             </select>
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Release To</label>
+                            <label>{t("Release To")}</label>
                             <select
                               value={normalizeRetakeReleaseScope(dailySessionForm.retake_release_scope)}
                               onChange={(e) => setDailySessionForm((s) => ({ ...s, retake_release_scope: e.target.value }))}
                             >
-                              <option value="all">All students</option>
-                              <option value="failed_and_absent">Failed / Absent</option>
-                              <option value="absent_only">Absent</option>
+                              <option value="all">{t("All students")}</option>
+                              <option value="failed_and_absent">{t("Failed / Absent")}</option>
+                              <option value="absent_only">{t("Absent")}</option>
                             </select>
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Test Title</label>
+                            <label>{t("Test Title")}</label>
                             <input
                               value={dailySessionForm.title}
                               onChange={(e) => setDailySessionForm((s) => ({ ...s, title: e.target.value, title_auto_generated: false }))}
-                              placeholder="Daily Test"
+                              placeholder={t("Daily Test")}
                             />
                           </div>
                           <div className="daily-session-create-split-row">
                             <div className="daily-session-create-field">
-                              <label>Date</label>
+                              <label>{t("Date")}</label>
                               <input
                                 type="date"
                                 value={dailySessionForm.session_date}
@@ -1958,7 +1961,7 @@ export default function AdminConsoleTestingTabs({
                               />
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Start Time</label>
+                              <label>{t("Start Time")}</label>
                               <div className="daily-session-create-time-picker-wrap" data-daily-time-picker>
                                 {(() => {
                                   const startTimeParts = getTwelveHourTimeParts(dailySessionForm.start_time);
@@ -1976,7 +1979,7 @@ export default function AdminConsoleTestingTabs({
                                         <span className={`daily-session-create-multi-arrow ${isOpen ? "open" : ""}`}>▾</span>
                                       </button>
                                       {isOpen ? (
-                                        <div className="daily-session-create-time-popover" role="dialog" aria-label="Select daily retake start time">
+                                        <div className="daily-session-create-time-popover" role="dialog" aria-label={t("Select daily retake start time")}>
                                           <div className="daily-session-create-time-columns">
                                             <div className="daily-session-create-time-column">
                                               {TWELVE_HOUR_TIME_OPTIONS.map((hourValue) => (
@@ -2023,7 +2026,7 @@ export default function AdminConsoleTestingTabs({
                               </div>
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Close Time</label>
+                              <label>{t("Close Time")}</label>
                               <div className="daily-session-create-time-picker-wrap" data-daily-time-picker>
                                 {(() => {
                                   const closeTimeParts = getTwelveHourTimeParts(dailySessionForm.close_time);
@@ -2041,7 +2044,7 @@ export default function AdminConsoleTestingTabs({
                                         <span className={`daily-session-create-multi-arrow ${isOpen ? "open" : ""}`}>▾</span>
                                       </button>
                                       {isOpen ? (
-                                        <div className="daily-session-create-time-popover" role="dialog" aria-label="Select daily retake close time">
+                                        <div className="daily-session-create-time-popover" role="dialog" aria-label={t("Select daily retake close time")}>
                                           <div className="daily-session-create-time-columns">
                                             <div className="daily-session-create-time-column">
                                               {TWELVE_HOUR_TIME_OPTIONS.map((hourValue) => (
@@ -2090,7 +2093,7 @@ export default function AdminConsoleTestingTabs({
                           </div>
                           <div className="daily-session-create-two-col">
                             <div className="daily-session-create-field">
-                              <label>Time Limit (min)</label>
+                              <label>{t("Time Limit (min)")}</label>
                               <input
                                 value={dailySessionForm.time_limit_min}
                                 onChange={(e) => setDailySessionForm((s) => ({ ...s, time_limit_min: e.target.value }))}
@@ -2098,7 +2101,7 @@ export default function AdminConsoleTestingTabs({
                               />
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Pass Rate</label>
+                              <label>{t("Pass Rate")}</label>
                               <input
                                 value={dailySessionForm.pass_rate}
                                 onChange={(e) => setDailySessionForm((s) => ({ ...s, pass_rate: e.target.value }))}
@@ -2107,8 +2110,8 @@ export default function AdminConsoleTestingTabs({
                             </div>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Random Order</span>
-                            <label className="daily-session-create-switch" aria-label="Random Order">
+                            <span>{t("Random Order")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Random Order")}>
                               <input
                                 type="checkbox"
                                 checked={dailySessionForm.random_order}
@@ -2119,8 +2122,8 @@ export default function AdminConsoleTestingTabs({
                             </label>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Show Answers After Attempt</span>
-                            <label className="daily-session-create-switch" aria-label="Show Answers After Attempt">
+                            <span>{t("Show Answers After Attempt")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Show Answers After Attempt")}>
                               <input
                                 type="checkbox"
                                 checked={dailySessionForm.show_answers}
@@ -2130,8 +2133,8 @@ export default function AdminConsoleTestingTabs({
                             </label>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Allow Multiple Attempts</span>
-                            <label className="daily-session-create-switch" aria-label="Allow Multiple Attempts">
+                            <span>{t("Allow Multiple Attempts")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Allow Multiple Attempts")}>
                               <input
                                 type="checkbox"
                                 checked={dailySessionForm.allow_multiple_attempts}
@@ -2147,7 +2150,7 @@ export default function AdminConsoleTestingTabs({
                               onClick={createDailySession}
                               disabled={!dailyRetakeSourceId}
                             >
-                              Create Session
+                              {t("Create Session")}
                             </button>
                           </div>
                           <AdminStatusMessage message={dailySessionsMsg} />
@@ -2188,7 +2191,7 @@ export default function AdminConsoleTestingTabs({
                             </label>
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Source Categories</label>
+                            <label>{t("Source Categories")}</label>
                             {dailySessionForm.selection_mode === "multiple" ? (
                               <>
                                 <div className="daily-session-create-multi-select" ref={dailySourceCategoryDropdownRef}>
@@ -2213,7 +2216,7 @@ export default function AdminConsoleTestingTabs({
                                             ))}
                                           </span>
                                         )
-                                        : "Select Source Categories"}
+                                        : t("Select Source Categories")}
                                     </span>
                                     <span className={`daily-session-create-multi-arrow ${dailySourceCategoryDropdownOpen ? "open" : ""}`}>▾</span>
                                   </button>
@@ -2241,7 +2244,7 @@ export default function AdminConsoleTestingTabs({
                                           );
                                         })
                                       ) : (
-                                        <div className="daily-session-create-help">No categories available.</div>
+                                        <div className="daily-session-create-help">{t("No categories available.")}</div>
                                       )}
                                     </div>
                                   ) : null}
@@ -2258,7 +2261,7 @@ export default function AdminConsoleTestingTabs({
                                   setDailyConductCategory(e.target.value);
                                 }}
                               >
-                                <option value="">Select category</option>
+                                <option value="">{t("Select category")}</option>
                                 {dailyCategories.length ? (
                                   dailyCategories.map((category) => (
                                     <option key={`daily-source-single-${category.name}`} value={category.name}>
@@ -2266,13 +2269,13 @@ export default function AdminConsoleTestingTabs({
                                     </option>
                                   ))
                                 ) : (
-                                  <option value="">No categories</option>
+                                  <option value="">{t("No categories")}</option>
                                 )}
                               </select>
                             )}
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Set ID</label>
+                            <label>{t("Set ID")}</label>
                             {dailySessionForm.selection_mode === "multiple" ? (
                               <div className="daily-session-create-multi-select" ref={dailySetDropdownRef}>
                                 <button
@@ -2295,7 +2298,7 @@ export default function AdminConsoleTestingTabs({
                                           ))}
                                         </span>
                                       )
-                                      : "Select Set ID"}
+                                      : t("Select Set ID")}
                                   </span>
                                   <span className={`daily-session-create-multi-arrow ${dailySetDropdownOpen ? "open" : ""}`}>▾</span>
                                 </button>
@@ -2342,7 +2345,7 @@ export default function AdminConsoleTestingTabs({
                                           );
                                         })
                                     ) : (
-                                      <div className="daily-session-create-help">No daily tests in the selected categories.</div>
+                                      <div className="daily-session-create-help">{t("No daily tests in the selected categories.")}</div>
                                     )}
                                   </div>
                                 ) : null}
@@ -2365,7 +2368,7 @@ export default function AdminConsoleTestingTabs({
                                     })
                                   }
                                 >
-                                  <option value="">Select Set ID</option>
+                                  <option value="">{t("Select Set ID")}</option>
                                   {dailySingleModeTests.length ? (
                                     dailySingleModeTests.map((t) => (
                                       <option key={`daily-ps-${t.version}`} value={t.version}>
@@ -2373,7 +2376,7 @@ export default function AdminConsoleTestingTabs({
                                       </option>
                                     ))
                                   ) : (
-                                    <option value="">No daily tests</option>
+                                    <option value="">{t("No daily tests")}</option>
                                   )}
                                 </select>
                                 <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -2393,11 +2396,11 @@ export default function AdminConsoleTestingTabs({
                                       cursor: dailySessionForm.problem_set_id ? "pointer" : "not-allowed",
                                     }}
                                   >
-                                    Select Specific Questions
+                                    {t("Select Specific Questions")}
                                   </button>
                                   {selectedDailySpecificQuestionCount > 0 ? (
                                     <>
-                                      <span className="admin-help">Selected: {selectedDailySpecificQuestionCount}</span>
+                                      <span className="admin-help">{t("Selected:")} {selectedDailySpecificQuestionCount}</span>
                                       <button
                                         type="button"
                                         onClick={clearDailySpecificQuestionSelection}
@@ -2413,7 +2416,7 @@ export default function AdminConsoleTestingTabs({
                                           cursor: "pointer",
                                         }}
                                       >
-                                        Clear
+                                        {t("Clear")}
                                       </button>
                                     </>
                                   ) : null}
@@ -2438,11 +2441,11 @@ export default function AdminConsoleTestingTabs({
                                     cursor: selectedDailyProblemSetIds.length ? "pointer" : "not-allowed",
                                   }}
                                 >
-                                  Select Specific Questions
+                                  {t("Select Specific Questions")}
                                 </button>
                                 {selectedDailySpecificQuestionCount > 0 ? (
                                   <>
-                                    <span className="admin-help">Selected: {selectedDailySpecificQuestionCount}</span>
+                                    <span className="admin-help">{t("Selected:")} {selectedDailySpecificQuestionCount}</span>
                                     <button
                                       type="button"
                                       onClick={clearDailySpecificQuestionSelection}
@@ -2458,7 +2461,7 @@ export default function AdminConsoleTestingTabs({
                                         cursor: "pointer",
                                       }}
                                     >
-                                      Clear
+                                      {t("Clear")}
                                     </button>
                                   </>
                                 ) : null}
@@ -2466,7 +2469,7 @@ export default function AdminConsoleTestingTabs({
                             ) : null}
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Session Category</label>
+                            <label>{t("Session Category")}</label>
                             {dailySessionCategories.length ? (
                               <>
                                 <select
@@ -2535,15 +2538,15 @@ export default function AdminConsoleTestingTabs({
                             </div>
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Test Title</label>
+                            <label>{t("Test Title")}</label>
                             <input
                               value={dailySessionForm.title}
                               onChange={(e) => setDailySessionForm((s) => ({ ...s, title: e.target.value, title_auto_generated: false }))}
-                              placeholder="Test Title"
+                              placeholder={t("Test Title")}
                             />
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Number of Questions</label>
+                            <label>{t("Number of Questions")}</label>
                             <div className="daily-session-create-choice-row daily-session-create-count-row">
                               <label className="daily-session-create-choice">
                                 <input
@@ -2552,7 +2555,7 @@ export default function AdminConsoleTestingTabs({
                                   checked={dailySessionForm.question_count_mode === "all"}
                                   onChange={() => setDailySessionForm((s) => ({ ...s, question_count_mode: "all", question_count: "" }))}
                                 />
-                                <span className="daily-session-create-choice-copy">All Questions</span>
+                                <span className="daily-session-create-choice-copy">{t("All Questions")}</span>
                               </label>
                               <div className="daily-session-create-count-option">
                                 <label className="daily-session-create-choice">
@@ -2562,7 +2565,7 @@ export default function AdminConsoleTestingTabs({
                                   checked={dailySessionForm.question_count_mode === "specify"}
                                   onChange={() => setDailySessionForm((s) => ({ ...s, question_count_mode: "specify", random_order: true }))}
                                 />
-                                  <span className="daily-session-create-choice-copy">Select by random:</span>
+                                  <span className="daily-session-create-choice-copy">{t("Select by random:")}</span>
                                 </label>
                                 <input
                                   className={`daily-session-create-count-input ${dailySessionForm.question_count_mode === "specify" ? "is-active" : ""}`}
@@ -2571,13 +2574,13 @@ export default function AdminConsoleTestingTabs({
                                   onChange={(e) => setDailySessionForm((s) => ({ ...s, question_count: e.target.value }))}
                                   placeholder=""
                                 />
-                                <span className="admin-help" style={{ color: "#1f2937" }}>questions</span>
+                                <span className="admin-help" style={{ color: "#1f2937" }}>{t("questions")}</span>
                               </div>
                             </div>
                             <div className="daily-session-create-help" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                              <span>Available questions:</span>
+                              <span>{t("Available questions:")}</span>
                               {selectedDailyQuestionCount == null ? (
-                                <AdminLoadingState compact label="Loading..." />
+                                <AdminLoadingState compact label={t("Loading...")} />
                               ) : (
                                 <span>{selectedDailyQuestionCount}</span>
                               )}
@@ -2585,7 +2588,7 @@ export default function AdminConsoleTestingTabs({
                           </div>
                           <div className="daily-session-create-split-row">
                             <div className="daily-session-create-field">
-                              <label>Date</label>
+                              <label>{t("Date")}</label>
                               <input
                                 type="date"
                                 value={dailySessionForm.session_date}
@@ -2593,7 +2596,7 @@ export default function AdminConsoleTestingTabs({
                               />
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Start Time</label>
+                              <label>{t("Start Time")}</label>
                               <div className="daily-session-create-time-picker-wrap" data-daily-time-picker>
                                 {(() => {
                                   const startTimeParts = getTwelveHourTimeParts(dailySessionForm.start_time);
@@ -2614,7 +2617,7 @@ export default function AdminConsoleTestingTabs({
                                         <span className={`daily-session-create-multi-arrow ${isOpen ? "open" : ""}`}>▾</span>
                                       </button>
                                       {isOpen ? (
-                                        <div className="daily-session-create-time-popover" role="dialog" aria-label="Select start time">
+                                        <div className="daily-session-create-time-popover" role="dialog" aria-label={t("Select start time")}>
                                           <div className="daily-session-create-time-columns">
                                             <div className="daily-session-create-time-column">
                                               {TWELVE_HOUR_TIME_OPTIONS.map((hourValue) => (
@@ -2661,7 +2664,7 @@ export default function AdminConsoleTestingTabs({
                               </div>
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Close Time</label>
+                              <label>{t("Close Time")}</label>
                               <div className="daily-session-create-time-picker-wrap" data-daily-time-picker>
                                 {(() => {
                                   const closeTimeParts = getTwelveHourTimeParts(dailySessionForm.close_time);
@@ -2682,7 +2685,7 @@ export default function AdminConsoleTestingTabs({
                                         <span className={`daily-session-create-multi-arrow ${isOpen ? "open" : ""}`}>▾</span>
                                       </button>
                                       {isOpen ? (
-                                        <div className="daily-session-create-time-popover" role="dialog" aria-label="Select close time">
+                                        <div className="daily-session-create-time-popover" role="dialog" aria-label={t("Select close time")}>
                                           <div className="daily-session-create-time-columns">
                                             <div className="daily-session-create-time-column">
                                               {TWELVE_HOUR_TIME_OPTIONS.map((hourValue) => (
@@ -2731,7 +2734,7 @@ export default function AdminConsoleTestingTabs({
                           </div>
                           <div className="daily-session-create-two-col">
                             <div className="daily-session-create-field">
-                              <label>Time Limit (min)</label>
+                              <label>{t("Time Limit (min)")}</label>
                               <input
                                 value={dailySessionForm.time_limit_min}
                                 onChange={(e) => setDailySessionForm((s) => ({ ...s, time_limit_min: e.target.value }))}
@@ -2739,7 +2742,7 @@ export default function AdminConsoleTestingTabs({
                               />
                             </div>
                             <div className="daily-session-create-field">
-                              <label>Pass Rate</label>
+                              <label>{t("Pass Rate")}</label>
                               <input
                                 value={dailySessionForm.pass_rate}
                                 onChange={(e) => setDailySessionForm((s) => ({ ...s, pass_rate: e.target.value }))}
@@ -2748,8 +2751,8 @@ export default function AdminConsoleTestingTabs({
                             </div>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Random Order</span>
-                            <label className="daily-session-create-switch" aria-label="Random Order">
+                            <span>{t("Random Order")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Random Order")}>
                               <input
                                 type="checkbox"
                                 checked={dailySessionForm.random_order}
@@ -2760,8 +2763,8 @@ export default function AdminConsoleTestingTabs({
                             </label>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Show Answers After Attempt</span>
-                            <label className="daily-session-create-switch" aria-label="Show Answers After Attempt">
+                            <span>{t("Show Answers After Attempt")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Show Answers After Attempt")}>
                               <input
                                 type="checkbox"
                                 checked={dailySessionForm.show_answers}
@@ -2771,8 +2774,8 @@ export default function AdminConsoleTestingTabs({
                             </label>
                           </div>
                           <div className="daily-session-create-toggle-row">
-                            <span>Allow Multiple Attempts</span>
-                            <label className="daily-session-create-switch" aria-label="Allow Multiple Attempts">
+                            <span>{t("Allow Multiple Attempts")}</span>
+                            <label className="daily-session-create-switch" aria-label={t("Allow Multiple Attempts")}>
                               <input
                                 type="checkbox"
                                 checked={dailySessionForm.allow_multiple_attempts}
@@ -2803,7 +2806,7 @@ export default function AdminConsoleTestingTabs({
                               type="button"
                               onClick={createDailySession}
                             >
-                              Create Session
+                              {t("Create Session")}
                             </button>
                           </div>
                           <AdminStatusMessage message={dailySessionsMsg} />
@@ -2828,7 +2831,7 @@ export default function AdminConsoleTestingTabs({
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                      <div className="admin-title">Daily Test Upload (CSV)</div>
+                      <div className="admin-title">{t("Daily Test Upload (CSV)")}</div>
                       <button className="btn btn-primary admin-compact-action-btn admin-upload-cta-btn" onClick={() => {
                         setAssetFile(null);
                         setAssetFiles([]);
@@ -2862,7 +2865,7 @@ export default function AdminConsoleTestingTabs({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        Upload Question Set
+                        {t("Upload Question Set")}
                       </button>
                     </div>
                   </div>
@@ -2873,7 +2876,7 @@ export default function AdminConsoleTestingTabs({
                     className={`admin-mini-tab results-category-tab ${!dailyUploadCategory ? "active" : ""}`}
                     onClick={() => setDailyUploadCategory("")}
                   >
-                    All
+                    {t("All")}
                   </button>
                   {dailyCategories.map((category) => (
                     <button
@@ -2897,15 +2900,15 @@ export default function AdminConsoleTestingTabs({
                         <table className="admin-table" style={{ minWidth: 1040 }}>
                           <thead>
                             <tr>
-                              <th>Category</th>
-                              <th>SetID</th>
-                              <th>Description</th>
-                              <th>Ver.</th>
-                              <th style={compactDateColumnStyle}>Created</th>
-                              <th style={{ width: 72, textAlign: "center" }}>Questions</th>
-                              <th>Preview</th>
-                              <th>Edit</th>
-                              <th>Delete</th>
+                              <th>{t("Category")}</th>
+                              <th>{t("SetID")}</th>
+                              <th>{t("Description")}</th>
+                              <th>{t("Ver.")}</th>
+                              <th style={compactDateColumnStyle}>{t("Created")}</th>
+                              <th style={{ width: 72, textAlign: "center" }}>{t("Questions")}</th>
+                              <th>{t("Preview")}</th>
+                              <th>{t("Edit")}</th>
+                              <th>{t("Delete")}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -2928,7 +2931,7 @@ export default function AdminConsoleTestingTabs({
                                       openPreview(t.version);
                                     }}
                                   >
-                                    Preview
+                                    {t("Preview")}
                                   </button>
                                 </td>
                                 <td>
@@ -2939,7 +2942,7 @@ export default function AdminConsoleTestingTabs({
                                       startEditTest(t, dailyCategories);
                                     }}
                                   >
-                                    Edit
+                                    {t("Edit")}
                                   </button>
                                 </td>
                                 <td>
@@ -2950,7 +2953,7 @@ export default function AdminConsoleTestingTabs({
                                       deleteTest(t.version);
                                     }}
                                   >
-                                    Delete
+                                    {t("Delete")}
                                   </button>
                                 </td>
                               </tr>
@@ -2961,7 +2964,7 @@ export default function AdminConsoleTestingTabs({
                     </div>
                   ))}
                 </div>
-                {groupedDailyUploadTests.length === 0 ? <AdminStatusMessage message={testsMsg || "No daily tests found."} /> : null}
+                {groupedDailyUploadTests.length === 0 ? <AdminStatusMessage message={testsMsg || t("No daily tests found.")} /> : null}
                 {!dailyUploadOpen ? <AdminStatusMessage message={dailyUploadMsg} /> : null}
                 {!dailyUploadOpen && dailyImportMsg ? (
                   <pre className="admin-msg" style={{ whiteSpace: "pre-wrap" }}>
@@ -2974,8 +2977,8 @@ export default function AdminConsoleTestingTabs({
                   <div className="admin-modal-overlay" onClick={() => setDailyUploadOpen(false)}>
                     <div className="admin-modal upload-question-modal" onClick={(e) => e.stopPropagation()}>
                       <div className="admin-modal-header">
-                        <div className="admin-title">Upload Daily Questions</div>
-                        <button className="admin-modal-close" onClick={() => setDailyUploadOpen(false)} aria-label="Close">
+                        <div className="admin-title">{t("Upload Daily Questions")}</div>
+                        <button className="admin-modal-close" onClick={() => setDailyUploadOpen(false)} aria-label={t("Close")}>
                           &times;
                         </button>
                       </div>
@@ -2988,7 +2991,7 @@ export default function AdminConsoleTestingTabs({
 
                       <div className="admin-form upload-question-form" style={{ marginTop: 10 }}>
                         <div className="field">
-                          <label>Category</label>
+                          <label>{t("Category")}</label>
                           {dailyCategories.length ? (
                             <>
                               <select
@@ -3024,7 +3027,7 @@ export default function AdminConsoleTestingTabs({
                           )}
                         </div>
                         <div className="field">
-                          <label>CSV File (required)</label>
+                          <label>{t("CSV File (required)")}</label>
                           <input
                             type="file"
                             accept=".csv,.tsv"
@@ -3043,7 +3046,7 @@ export default function AdminConsoleTestingTabs({
                           ) : null}
                         </div>
                         <div className="field">
-                          <label>Folder (PNG/MP3/M4A)</label>
+                          <label>{t("Folder (PNG/MP3/M4A)")}</label>
                           <div className="upload-question-picker">
                             <input
                               ref={dailyFolderInputRef}
@@ -3108,7 +3111,7 @@ export default function AdminConsoleTestingTabs({
                                 />
                               </svg>
                             )}
-                            {isDailyUploadBusy ? "Uploading..." : "Upload & Register Daily Test"}
+                            {isDailyUploadBusy ? t("Uploading...") : t("Upload & Register Daily Test")}
                           </button>
                         </div>
                       </div>
@@ -3160,28 +3163,28 @@ export default function AdminConsoleTestingTabs({
                       style={{ padding: 0, maxWidth: 780, width: "min(780px, calc(100vw - 28px))" }}
                     >
                       <div className="admin-modal-header">
-                        <div className="admin-title">{activeTab === "model" ? "Edit Test Session" : "Edit Daily Test Session"}</div>
-                        <button className="admin-modal-close" onClick={cancelEditSession} aria-label="Close">
+                        <div className="admin-title">{activeTab === "model" ? t("Edit Test Session") : t("Edit Daily Test Session")}</div>
+                        <button className="admin-modal-close" onClick={cancelEditSession} aria-label={t("Close")}>
                           &times;
                         </button>
                       </div>
                       <AdminStatusMessage message={editingSessionMsg} style={{ margin: "0 16px 8px" }} />
                       <div className="admin-form upload-question-form" style={{ padding: "0 16px 16px" }}>
                         <div className="field">
-                          <label>Test Title</label>
+                          <label>{t("Test Title")}</label>
                           <input
                             value={editingSessionForm.title}
                             onChange={(e) => setEditingSessionForm((s) => ({ ...s, title: e.target.value }))}
-                            placeholder="Test Title"
+                            placeholder={t("Test Title")}
                           />
                         </div>
                         <div className="field">
-                          <label>SetID</label>
+                          <label>{t("SetID")}</label>
                           <input value={editingSessionForm.problem_set_id} disabled readOnly />
                         </div>
                         {activeTab === "daily" ? (
                           <div className="field">
-                            <label>Session Category</label>
+                            <label>{t("Session Category")}</label>
                             <select
                               value={dailySessionCategories.some((category) => category.name === editingSessionForm.session_category)
                                 ? editingSessionForm.session_category
@@ -3205,7 +3208,7 @@ export default function AdminConsoleTestingTabs({
                                   {category.name}
                                 </option>
                               ))}
-                              <option value={CUSTOM_CATEGORY_OPTION}>Custom...</option>
+                              <option value={CUSTOM_CATEGORY_OPTION}>{t("Custom...")}</option>
                             </select>
                             {dailySessionCategories.some((category) => category.name === editingSessionForm.session_category)
                               ? null
@@ -3221,7 +3224,7 @@ export default function AdminConsoleTestingTabs({
                         ) : null}
                         <div className="daily-session-create-split-row">
                           <div className="daily-session-create-field">
-                            <label>Start Date</label>
+                            <label>{t("Start Date")}</label>
                             <input
                               type="date"
                               value={editingSessionForm.starts_at_date}
@@ -3229,7 +3232,7 @@ export default function AdminConsoleTestingTabs({
                             />
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Start Time</label>
+                            <label>{t("Start Time")}</label>
                             <input
                               type="time"
                               value={editingSessionForm.starts_at_time}
@@ -3240,7 +3243,7 @@ export default function AdminConsoleTestingTabs({
                         </div>
                         <div className="daily-session-create-split-row">
                           <div className="daily-session-create-field">
-                            <label>End Date</label>
+                            <label>{t("End Date")}</label>
                             <input
                               type="date"
                               value={editingSessionForm.ends_at_date}
@@ -3248,7 +3251,7 @@ export default function AdminConsoleTestingTabs({
                             />
                           </div>
                           <div className="daily-session-create-field">
-                            <label>End Time</label>
+                            <label>{t("End Time")}</label>
                             <input
                               type="time"
                               value={editingSessionForm.ends_at_time}
@@ -3259,7 +3262,7 @@ export default function AdminConsoleTestingTabs({
                         </div>
                         <div className="daily-session-create-two-col">
                           <div className="daily-session-create-field">
-                            <label>Time Limit (min)</label>
+                            <label>{t("Time Limit (min)")}</label>
                             <input
                               value={editingSessionForm.time_limit_min}
                               onChange={(e) => setEditingSessionForm((s) => ({ ...s, time_limit_min: e.target.value }))}
@@ -3267,7 +3270,7 @@ export default function AdminConsoleTestingTabs({
                             />
                           </div>
                           <div className="daily-session-create-field">
-                            <label>Pass Rate</label>
+                            <label>{t("Pass Rate")}</label>
                             <input
                               value={editingSessionForm.pass_rate}
                               onChange={(e) => setEditingSessionForm((s) => ({ ...s, pass_rate: e.target.value }))}
@@ -3276,8 +3279,8 @@ export default function AdminConsoleTestingTabs({
                           </div>
                         </div>
                         <div className="daily-session-create-toggle-row">
-                          <span>Show Answers After Attempt</span>
-                          <label className="daily-session-create-switch" aria-label="Show Answers After Attempt">
+                          <span>{t("Show Answers After Attempt")}</span>
+                          <label className="daily-session-create-switch" aria-label={t("Show Answers After Attempt")}>
                             <input
                               type="checkbox"
                               checked={editingSessionForm.show_answers}
@@ -3287,8 +3290,8 @@ export default function AdminConsoleTestingTabs({
                           </label>
                         </div>
                         <div className="daily-session-create-toggle-row">
-                          <span>Allow Multiple Attempts</span>
-                          <label className="daily-session-create-switch" aria-label="Allow Multiple Attempts">
+                          <span>{t("Allow Multiple Attempts")}</span>
+                          <label className="daily-session-create-switch" aria-label={t("Allow Multiple Attempts")}>
                             <input
                               type="checkbox"
                               checked={editingSessionForm.allow_multiple_attempts}
@@ -3316,10 +3319,10 @@ export default function AdminConsoleTestingTabs({
                       </div>
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "0 16px 16px", borderTop: "1px solid #e5e7eb" }}>
                         <button className="btn" type="button" onClick={cancelEditSession}>
-                          Cancel
+                          {t("Cancel")}
                         </button>
                         <button className="btn btn-primary" type="button" onClick={saveSessionEdits}>
-                          Save Edits
+                          {t("Save Edits")}
                         </button>
                       </div>
                     </div>
@@ -3333,15 +3336,15 @@ export default function AdminConsoleTestingTabs({
                       style={{ maxWidth: 560, width: "min(560px, calc(100vw - 28px))" }}
                     >
                       <div className="admin-modal-header">
-                        <div className="admin-title">{activeTab === "model" ? "Edit Model Question Set" : "Edit Daily Question Set"}</div>
-                        <button className="admin-modal-close" onClick={cancelEditTest} aria-label="Close">
+                        <div className="admin-title">{activeTab === "model" ? t("Edit Model Question Set") : t("Edit Daily Question Set")}</div>
+                        <button className="admin-modal-close" onClick={cancelEditTest} aria-label={t("Close")}>
                           &times;
                         </button>
                       </div>
                       <AdminStatusMessage message={editingTestMsg} style={{ margin: "0 16px 8px" }} />
                       <div className="admin-form upload-question-form" style={{ padding: "0 16px 16px" }}>
                         <div className="field">
-                          <label>Category</label>
+                          <label>{t("Category")}</label>
                           <select
                             value={editingCategorySelect}
                             onChange={(e) => {
@@ -3357,7 +3360,7 @@ export default function AdminConsoleTestingTabs({
                                 {category.name}
                               </option>
                             ))}
-                            <option value={CUSTOM_CATEGORY_OPTION}>Custom...</option>
+                            <option value={CUSTOM_CATEGORY_OPTION}>{t("Custom...")}</option>
                           </select>
                           {editingCategorySelect === CUSTOM_CATEGORY_OPTION ? (
                             <input
@@ -3369,7 +3372,7 @@ export default function AdminConsoleTestingTabs({
                           ) : null}
                         </div>
                         <div className="field">
-                          <label>SetID</label>
+                          <label>{t("SetID")}</label>
                           <input
                             value={editingTestForm.version}
                             onChange={(e) => setEditingTestForm((s) => ({ ...s, version: e.target.value }))}
@@ -3379,10 +3382,10 @@ export default function AdminConsoleTestingTabs({
                       </div>
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "0 16px 16px", borderTop: "1px solid #e5e7eb" }}>
                         <button className="btn" type="button" onClick={cancelEditTest}>
-                          Cancel
+                          {t("Cancel")}
                         </button>
                         <button className="btn btn-primary" type="button" onClick={() => saveTestEdits(activeTestCategoryOptions)}>
-                          Save Edits
+                          {t("Save Edits")}
                         </button>
                       </div>
                     </div>
@@ -3402,12 +3405,12 @@ export default function AdminConsoleTestingTabs({
           >
             <div className="admin-modal-header daily-session-create-header">
               <div className="admin-title">
-                Select Specific Questions
+                {t("Select Specific Questions")}
                 {(specificQuestionPicker.setIds?.length ?? 0) > 1
                   ? ` (${specificQuestionPicker.setIds.length} SetIDs)`
                   : (specificQuestionPicker.setId ? ` (${specificQuestionPicker.setId})` : "")}
               </div>
-              <button className="admin-modal-close" onClick={closeSpecificQuestionPicker} aria-label="Close">
+              <button className="admin-modal-close" onClick={closeSpecificQuestionPicker} aria-label={t("Close")}>
                 &times;
               </button>
             </div>
@@ -3425,7 +3428,7 @@ export default function AdminConsoleTestingTabs({
                     onClick={selectAllSpecificQuestionsInPicker}
                     disabled={specificQuestionPicker.loading || !(specificQuestionPicker.questions?.length)}
                   >
-                    Select All
+                    {t("Select All")}
                   </button>
                   <button
                     className="btn"
@@ -3433,7 +3436,7 @@ export default function AdminConsoleTestingTabs({
                     onClick={clearSpecificQuestionsInPicker}
                     disabled={specificQuestionPicker.loading || !(specificQuestionPicker.selectedQuestionDbIds?.length)}
                   >
-                    Clear All
+                    {t("Clear All")}
                   </button>
                 </div>
               </div>
@@ -3458,12 +3461,12 @@ export default function AdminConsoleTestingTabs({
               >
                 {specificQuestionPicker.loading ? (
                   <div className="daily-session-create-help" style={{ padding: 12 }}>
-                    <AdminLoadingState compact label="Loading questions..." />
+                    <AdminLoadingState compact label={t("Loading questions...")} />
                   </div>
                 ) : null}
                 {!specificQuestionPicker.loading && !specificQuestionPicker.questions?.length ? (
                   <div className="daily-session-create-help" style={{ padding: 12 }}>
-                    No questions found.
+                    {t("No questions found.")}
                   </div>
                 ) : null}
                 {!specificQuestionPicker.loading && (specificQuestionPicker.questionSetGroups ?? []).map((group) => {
@@ -3500,7 +3503,7 @@ export default function AdminConsoleTestingTabs({
                               cursor: questions.length ? "pointer" : "not-allowed",
                             }}
                           >
-                            Select All
+                            {t("Select All")}
                           </button>
                           <button
                             type="button"
@@ -3518,7 +3521,7 @@ export default function AdminConsoleTestingTabs({
                               cursor: selectedCount ? "pointer" : "not-allowed",
                             }}
                           >
-                            Clear All
+                            {t("Clear All")}
                           </button>
                         </div>
                       </div>
@@ -3559,7 +3562,7 @@ export default function AdminConsoleTestingTabs({
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 <button className="btn" type="button" onClick={closeSpecificQuestionPicker}>
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   className="btn btn-primary"
@@ -3567,7 +3570,7 @@ export default function AdminConsoleTestingTabs({
                   onClick={applySpecificQuestionsInPicker}
                   disabled={specificQuestionPicker.loading}
                 >
-                  Apply
+                  {t("Apply")}
                 </button>
               </div>
             </div>
@@ -3582,24 +3585,24 @@ export default function AdminConsoleTestingTabs({
             style={{ maxWidth: 780, width: "min(780px, calc(100vw - 28px))" }}
           >
             <div className="admin-modal-header">
-              <div className="admin-title">{activeTab === "model" ? "Edit Test Session" : "Edit Daily Test Session"}</div>
-              <button className="admin-modal-close" onClick={cancelEditSession} aria-label="Close">
+              <div className="admin-title">{activeTab === "model" ? t("Edit Test Session") : t("Edit Daily Test Session")}</div>
+              <button className="admin-modal-close" onClick={cancelEditSession} aria-label={t("Close")}>
                 &times;
               </button>
             </div>
             <AdminStatusMessage message={editingSessionMsg} style={{ margin: "0 16px 8px" }} />
             <div className="admin-form upload-question-form" style={{ padding: "0 16px 16px" }}>
               <div className="field">
-                <label>Test Title</label>
+                <label>{t("Test Title")}</label>
                 <input
                   value={editingSessionForm.title}
                   onChange={(e) => setEditingSessionForm((s) => ({ ...s, title: e.target.value }))}
-                  placeholder="Test Title"
+                  placeholder={t("Test Title")}
                 />
               </div>
               {activeTab === "daily" ? (
                 <div className="field">
-                  <label>Session Category</label>
+                  <label>{t("Session Category")}</label>
                   <select
                     value={dailySessionCategories.some((category) => category.name === editingSessionForm.session_category)
                       ? editingSessionForm.session_category
@@ -3623,7 +3626,7 @@ export default function AdminConsoleTestingTabs({
                         {category.name}
                       </option>
                     ))}
-                    <option value={CUSTOM_CATEGORY_OPTION}>Custom...</option>
+                    <option value={CUSTOM_CATEGORY_OPTION}>{t("Custom...")}</option>
                   </select>
                   {dailySessionCategories.some((category) => category.name === editingSessionForm.session_category)
                     ? null
@@ -3639,7 +3642,7 @@ export default function AdminConsoleTestingTabs({
               ) : null}
               <div className="daily-session-create-split-row">
                 <div className="daily-session-create-field">
-                  <label>Start Date</label>
+                  <label>{t("Start Date")}</label>
                   <input
                     type="date"
                     value={editingSessionForm.starts_at_date}
@@ -3647,7 +3650,7 @@ export default function AdminConsoleTestingTabs({
                   />
                 </div>
                 <div className="daily-session-create-field">
-                  <label>Start Time</label>
+                  <label>{t("Start Time")}</label>
                   <input
                     type="time"
                     value={editingSessionForm.starts_at_time}
@@ -3658,7 +3661,7 @@ export default function AdminConsoleTestingTabs({
               </div>
               <div className="daily-session-create-split-row">
                 <div className="daily-session-create-field">
-                  <label>End Date</label>
+                  <label>{t("End Date")}</label>
                   <input
                     type="date"
                     value={editingSessionForm.ends_at_date}
@@ -3666,7 +3669,7 @@ export default function AdminConsoleTestingTabs({
                   />
                 </div>
                 <div className="daily-session-create-field">
-                  <label>End Time</label>
+                  <label>{t("End Time")}</label>
                   <input
                     type="time"
                     value={editingSessionForm.ends_at_time}
@@ -3677,7 +3680,7 @@ export default function AdminConsoleTestingTabs({
               </div>
               <div className="daily-session-create-two-col">
                 <div className="daily-session-create-field">
-                  <label>Time Limit (min)</label>
+                  <label>{t("Time Limit (min)")}</label>
                   <input
                     value={editingSessionForm.time_limit_min}
                     onChange={(e) => setEditingSessionForm((s) => ({ ...s, time_limit_min: e.target.value }))}
@@ -3685,7 +3688,7 @@ export default function AdminConsoleTestingTabs({
                   />
                 </div>
                 <div className="daily-session-create-field">
-                  <label>Pass Rate</label>
+                  <label>{t("Pass Rate")}</label>
                   <input
                     value={editingSessionForm.pass_rate}
                     onChange={(e) => setEditingSessionForm((s) => ({ ...s, pass_rate: e.target.value }))}
@@ -3694,8 +3697,8 @@ export default function AdminConsoleTestingTabs({
                 </div>
               </div>
               <div className="daily-session-create-toggle-row">
-                <span>Show Answers After Attempt</span>
-                <label className="daily-session-create-switch" aria-label="Show Answers After Attempt">
+                <span>{t("Show Answers After Attempt")}</span>
+                <label className="daily-session-create-switch" aria-label={t("Show Answers After Attempt")}>
                   <input
                     type="checkbox"
                     checked={editingSessionForm.show_answers}
@@ -3705,8 +3708,8 @@ export default function AdminConsoleTestingTabs({
                 </label>
               </div>
               <div className="daily-session-create-toggle-row">
-                <span>Allow Multiple Attempts</span>
-                <label className="daily-session-create-switch" aria-label="Allow Multiple Attempts">
+                <span>{t("Allow Multiple Attempts")}</span>
+                <label className="daily-session-create-switch" aria-label={t("Allow Multiple Attempts")}>
                   <input
                     type="checkbox"
                     checked={editingSessionForm.allow_multiple_attempts}
@@ -3734,10 +3737,10 @@ export default function AdminConsoleTestingTabs({
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "0 16px 16px", borderTop: "1px solid #e5e7eb" }}>
               <button className="btn" type="button" onClick={cancelEditSession}>
-                Cancel
+                {t("Cancel")}
               </button>
               <button className="btn btn-primary" type="button" onClick={saveSessionEdits}>
-                Save Edits
+                {t("Save Edits")}
               </button>
             </div>
           </div>
@@ -3751,15 +3754,15 @@ export default function AdminConsoleTestingTabs({
             style={{ padding: 0, maxWidth: 560, width: "min(560px, calc(100vw - 28px))" }}
           >
             <div className="admin-modal-header">
-              <div className="admin-title">{activeTab === "model" ? "Edit Model Question Set" : "Edit Daily Question Set"}</div>
-              <button className="admin-modal-close" onClick={cancelEditTest} aria-label="Close">
+              <div className="admin-title">{activeTab === "model" ? t("Edit Model Question Set") : t("Edit Daily Question Set")}</div>
+              <button className="admin-modal-close" onClick={cancelEditTest} aria-label={t("Close")}>
                 &times;
               </button>
             </div>
             <AdminStatusMessage message={editingTestMsg} style={{ margin: "0 16px 8px" }} />
             <div className="admin-form upload-question-form" style={{ padding: "0 16px 16px" }}>
               <div className="field">
-                <label>Category</label>
+                <label>{t("Category")}</label>
                 <select
                   value={editingCategorySelect}
                   onChange={(e) => {
@@ -3775,7 +3778,7 @@ export default function AdminConsoleTestingTabs({
                       {category.name}
                     </option>
                   ))}
-                  <option value={CUSTOM_CATEGORY_OPTION}>Custom...</option>
+                  <option value={CUSTOM_CATEGORY_OPTION}>{t("Custom...")}</option>
                 </select>
                 {editingCategorySelect === CUSTOM_CATEGORY_OPTION ? (
                   <input
@@ -3787,7 +3790,7 @@ export default function AdminConsoleTestingTabs({
                 ) : null}
               </div>
               <div className="field">
-                <label>SetID</label>
+                <label>{t("SetID")}</label>
                 <input
                   value={editingTestForm.version}
                   onChange={(e) => setEditingTestForm((s) => ({ ...s, version: e.target.value }))}
@@ -3797,10 +3800,10 @@ export default function AdminConsoleTestingTabs({
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "0 16px 16px", borderTop: "1px solid #e5e7eb" }}>
               <button className="btn" type="button" onClick={cancelEditTest}>
-                Cancel
+                {t("Cancel")}
               </button>
               <button className="btn btn-primary" type="button" onClick={() => saveTestEdits(activeTestCategoryOptions)}>
-                Save Edits
+                {t("Save Edits")}
               </button>
             </div>
           </div>

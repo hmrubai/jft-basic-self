@@ -6,6 +6,7 @@ import AdminConsoleDeferredFeatures from "./AdminConsoleDeferredFeatures";
 import AdminLoadingState from "./AdminLoadingState";
 import AdminStatusMessage from "./AdminStatusMessage";
 import { renderUnderlinesHtml } from "../lib/adminQuestionText";
+import { useLanguage } from "../lib/i18n";
 
 const ADMIN_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 
@@ -1121,6 +1122,8 @@ export default function AdminConsoleResultsWorkspace(props) {
     runSearch = () => {},
     fetchSessionDetail = null,
   } = props;
+
+  const { t } = useLanguage();
 
   const sessionStudents = Array.isArray(students) ? students : [];
   const studentsById = new Map(sessionStudents.map((student) => [student.id, student]));
@@ -2995,32 +2998,32 @@ export default function AdminConsoleResultsWorkspace(props) {
           <div className="session-export-meta">
             {!isMockSessionDetail && !isImportedSummarySession ? (
               <>
-                SetID: <b>{selectedSessionDetail.problem_set_id}</b>
+                {t("SetID:")} <b>{selectedSessionDetail.problem_set_id}</b>
                 {" · "}
               </>
             ) : null}
-            Start: <b>{formatCompactDateTime(selectedSessionDetail.starts_at) || "—"}</b>
+            {t("Start:")} <b>{formatCompactDateTime(selectedSessionDetail.starts_at) || "—"}</b>
             {" · "}
-            End: <b>{formatCompactDateTime(selectedSessionDetail.ends_at) || "—"}</b>
+            {t("End:")} <b>{formatCompactDateTime(selectedSessionDetail.ends_at) || "—"}</b>
           </div>
         </div>
 
         {sessionExportOptions.resultsSummary ? (
           <section className="session-export-section">
-            {renderSessionExportSectionHeading(sessionExportSectionOrder.resultsSummary, "Results Summary", "Score distribution and class averages")}
+            {renderSessionExportSectionHeading(sessionExportSectionOrder.resultsSummary, t("Results Summary"), t("Score distribution and class averages"))}
             <div className="session-export-summary-grid">
               <table className="session-export-table session-export-summary-table">
                 <tbody>
                   <tr>
-                    <th>No. of Pass</th>
+                    <th>{t("No. of Pass")}</th>
                     <td>{sessionDetailAnalysisSummary.passCount}/{sessionDetailAnalysisSummary.attendedCount}</td>
                   </tr>
                   <tr>
-                    <th>No. of Fail</th>
+                    <th>{t("No. of Fail")}</th>
                     <td>{sessionDetailAnalysisSummary.failCount}/{sessionDetailAnalysisSummary.attendedCount}</td>
                   </tr>
                   <tr>
-                    <th>Average score</th>
+                    <th>{t("Average score")}</th>
                     <td>
                       {sessionDetailUsesImportedResultsSummaryRaw
                         ? "—"
@@ -3028,11 +3031,11 @@ export default function AdminConsoleResultsWorkspace(props) {
                     </td>
                   </tr>
                   <tr>
-                    <th>Average %</th>
+                    <th>{t("Average %")}</th>
                     <td>{(sessionDetailAnalysisSummary.averageRate * 100).toFixed(2)}%</td>
                   </tr>
                   <tr>
-                    <th>Absent</th>
+                    <th>{t("Absent")}</th>
                     <td>{sessionDetailAnalysisSummary.absentCount}</td>
                   </tr>
                 </tbody>
@@ -3050,8 +3053,8 @@ export default function AdminConsoleResultsWorkspace(props) {
             {isMockSessionDetail && (isImportedModelSummarySession || sessionDetailNestedSectionAverages.length) ? (
               <section className="session-export-section">
                 <div className="session-export-panel-header">
-                  <div className="session-export-panel-title">Average Section Performance</div>
-                  <div className="session-export-panel-description">Summary table and radar chart</div>
+                  <div className="session-export-panel-title">{t("Average Section Performance")}</div>
+                  <div className="session-export-panel-description">{t("Summary table and radar chart")}</div>
                 </div>
                 <div className="session-export-performance-grid">
                   <div>
@@ -3059,10 +3062,10 @@ export default function AdminConsoleResultsWorkspace(props) {
                       <table className="session-export-table session-export-section-table">
                         <thead>
                           <tr>
-                            <th>Section</th>
-                            <th>Total</th>
-                            <th>Average</th>
-                            <th>Average %</th>
+                            <th>{t("Section")}</th>
+                            <th>{t("Total")}</th>
+                            <th>{t("Average")}</th>
+                            <th>{t("Average %")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -3084,11 +3087,11 @@ export default function AdminConsoleResultsWorkspace(props) {
                       <table className="session-export-table session-export-section-table">
                         <thead>
                           <tr>
-                            <th>Section</th>
-                            <th>Sub-section</th>
-                            <th>Total</th>
-                            <th>Average</th>
-                            <th>Average %</th>
+                            <th>{t("Section")}</th>
+                            <th>{t("Sub-section")}</th>
+                            <th>{t("Total")}</th>
+                            <th>{t("Average")}</th>
+                            <th>{t("Average %")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -3102,7 +3105,7 @@ export default function AdminConsoleResultsWorkspace(props) {
                                     <span className="session-ranking-section-header">{renderTwoLineHeader(group.mainSection)}</span>
                                   </td>
                                   <td className="session-section-average-cell-subsection">
-                                    <span className="attempt-score-detail-total-label">Total</span>
+                                    <span className="attempt-score-detail-total-label">{t("Total")}</span>
                                   </td>
                                   <td className="session-section-average-cell-total">{group.total}</td>
                                   <td className={`session-section-average-cell-correct ${isGroupBelowPass ? "attempt-score-detail-below-pass" : ""}`}>

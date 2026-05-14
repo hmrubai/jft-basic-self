@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSuperAdmin } from "./super/SuperAdminShell";
 import AdminLoadingState from "./AdminLoadingState";
+import { useLanguage } from "../lib/i18n";
 
 function generateTempPassword(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
@@ -37,6 +38,7 @@ function formatDateTime(value) {
 export default function SchoolAdminsPage({ schoolId }) {
   const router = useRouter();
   const { supabase, invokeWithAuth } = useSuperAdmin();
+  const { t } = useLanguage();
   const [school, setSchool] = useState(null);
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -216,9 +218,9 @@ export default function SchoolAdminsPage({ schoolId }) {
     if (!tempPassword) return;
     try {
       await navigator.clipboard.writeText(tempPassword);
-      setCopyMsg("Copied.");
+      setCopyMsg(t("Copied."));
     } catch {
-      setCopyMsg("Copy failed.");
+      setCopyMsg(t("Copy failed."));
     }
   }
 
@@ -256,11 +258,11 @@ export default function SchoolAdminsPage({ schoolId }) {
   async function saveAdmin() {
     if (modalMode === "assign") {
       if (!form.existing_admin_id) {
-        setMsg("Select an existing admin.");
+        setMsg(t("Select an existing admin."));
         return;
       }
     } else if (!form.email.trim()) {
-      setMsg("Email is required.");
+      setMsg(t("Email is required."));
       return;
     }
 
@@ -300,8 +302,8 @@ export default function SchoolAdminsPage({ schoolId }) {
       result.temp_password
         ? `Admin created. Temporary password: ${result.temp_password}`
         : modalMode === "assign"
-        ? "Existing admin added to this school."
-        : "Admin updated."
+        ? t("Existing admin added to this school.")
+        : t("Admin updated.")
     );
     await reloadAdmins();
   }
@@ -316,21 +318,21 @@ export default function SchoolAdminsPage({ schoolId }) {
       account_status: nextStatus,
     });
     if (!result) return;
-    setMsg(`Admin ${nextStatus === "active" ? "enabled" : "disabled"}.`);
+    setMsg(nextStatus === "active" ? t("Admin enabled.") : t("Admin disabled."));
     await reloadAdmins();
   }
 
   if (loading || !school) {
     return (
-      <AdminLoadingState centered label="Loading..." />
+      <AdminLoadingState centered label={t("Loading...")} />
     );
   }
 
   const selectedExistingAdmin = existingAdmins.find((admin) => admin.id === form.existing_admin_id) ?? null;
   const modalTitle =
-    modalMode === "assign" ? "Add Existing Admin" : modalMode === "edit" ? "Edit Admin" : "Create Admin";
+    modalMode === "assign" ? t("Add Existing Admin") : modalMode === "edit" ? t("Edit Admin") : t("Create Admin");
   const modalActionLabel =
-    modalMode === "assign" ? "Add Admin to School" : modalMode === "edit" ? "Save Changes" : "Create Admin";
+    modalMode === "assign" ? t("Add Admin to School") : modalMode === "edit" ? t("Save Changes") : t("Create Admin");
 
   return (
     <div className="super-page-content">
@@ -352,25 +354,25 @@ export default function SchoolAdminsPage({ schoolId }) {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span>Back to Schools</span>
+              <span>{t("Back to Schools")}</span>
             </Link>
             <div className="super-inline-title" style={{ marginTop: 0 }}>{school.name}</div>
             <div className="admin-help">
-              New admins receive a temporary password and must change it on first login.
+              {t("New admins receive a temporary password and must change it on first login.")}
             </div>
           </div>
           <div className="admin-actions">
-            <button className="btn" onClick={openAssignModal}>Add Existing Admin</button>
-            <button className="btn btn-primary" onClick={openCreateModal}>Create Admin</button>
+            <button className="btn" onClick={openAssignModal}>{t("Add Existing Admin")}</button>
+            <button className="btn btn-primary" onClick={openCreateModal}>{t("Create Admin")}</button>
           </div>
         </div>
 
         {msg ? <div className="admin-msg">{msg}</div> : null}
         {tempPassword ? (
           <div className="admin-help" style={{ marginTop: 8 }}>
-            Last issued temporary password: <strong>{tempPassword}</strong>
+            {t("Last issued temporary password:")} <strong>{tempPassword}</strong>
             <button className="btn" style={{ marginLeft: 8 }} onClick={copyTempPassword}>
-              Copy
+              {t("Copy")}
             </button>
             {copyMsg ? <span style={{ marginLeft: 8 }}>{copyMsg}</span> : null}
           </div>
@@ -379,13 +381,13 @@ export default function SchoolAdminsPage({ schoolId }) {
           <table className="admin-table" style={{ minWidth: 1080 }}>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Access</th>
-                <th>Primary School</th>
-                <th>Created at</th>
-                <th>Actions</th>
+                <th>{t("Name")}</th>
+                <th>{t("Email")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Access")}</th>
+                <th>{t("Primary School")}</th>
+                <th>{t("Created at")}</th>
+                <th>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -403,9 +405,9 @@ export default function SchoolAdminsPage({ schoolId }) {
                   <td>{formatDateTime(admin.created_at)}</td>
                   <td>
                     <div className="admin-actions">
-                      <button className="btn" onClick={() => openEditModal(admin)}>Edit</button>
+                      <button className="btn" onClick={() => openEditModal(admin)}>{t("Edit")}</button>
                       <button className="btn" onClick={() => toggleAdminStatus(admin)}>
-                        {admin.account_status === "active" ? "Disable" : "Enable"}
+                        {admin.account_status === "active" ? t("Disable") : t("Enable")}
                       </button>
                     </div>
                   </td>
@@ -413,7 +415,7 @@ export default function SchoolAdminsPage({ schoolId }) {
               ))}
               {admins.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>No school admins yet.</td>
+                  <td colSpan={7}>{t("No school admins yet.")}</td>
                 </tr>
               ) : null}
             </tbody>
@@ -435,14 +437,14 @@ export default function SchoolAdminsPage({ schoolId }) {
               <>
                 <div className="admin-form super-school-admin-form" style={{ marginTop: 12 }}>
                   <div className="field">
-                    <label>Existing Admin</label>
+                    <label>{t("Existing Admin")}</label>
                     <select
                       value={form.existing_admin_id}
                       onChange={(event) =>
                         setForm((prev) => ({ ...prev, existing_admin_id: event.target.value }))
                       }
                     >
-                      <option value="">Select an admin</option>
+                      <option value="">{t("Select an admin")}</option>
                       {existingAdmins.map((admin) => (
                         <option key={admin.id} value={admin.id}>
                           {admin.display_name || admin.email || admin.id}
@@ -453,9 +455,9 @@ export default function SchoolAdminsPage({ schoolId }) {
                 </div>
                 <div className="admin-help" style={{ marginTop: 10 }}>
                   {existingAdminsLoading ? (
-                    <AdminLoadingState compact label="Loading available admins..." />
+                    <AdminLoadingState compact label={t("Loading available admins...")} />
                   ) : (
-                    "Select an existing admin from another school to add them here as a shared admin."
+                    t("Select an existing admin from another school to add them here as a shared admin.")
                   )}
                 </div>
               </>
@@ -463,14 +465,14 @@ export default function SchoolAdminsPage({ schoolId }) {
               <>
                 <div className="admin-form super-school-admin-form" style={{ marginTop: 12 }}>
                   <div className="field">
-                    <label>Name</label>
+                    <label>{t("Name")}</label>
                     <input
                       value={form.display_name}
                       onChange={(event) => setForm((prev) => ({ ...prev, display_name: event.target.value }))}
                     />
                   </div>
                   <div className="field">
-                    <label>Email</label>
+                    <label>{t("Email")}</label>
                     <input
                       type="email"
                       value={form.email}
@@ -479,13 +481,13 @@ export default function SchoolAdminsPage({ schoolId }) {
                   </div>
                   {modalMode === "create" ? (
                     <div className="field">
-                      <label>Temporary Password</label>
+                      <label>{t("Temporary Password")}</label>
                       <input
-                        placeholder="Leave blank to auto-generate"
+                        placeholder={t("Leave blank to auto-generate")}
                         value={form.temp_password}
                         onChange={(event) => setForm((prev) => ({ ...prev, temp_password: event.target.value }))}
                       />
-                      <div className="admin-help">Optional. The server will generate one if empty.</div>
+                      <div className="admin-help">{t("Optional. The server will generate one if empty.")}</div>
                     </div>
                   ) : null}
                 </div>
@@ -495,7 +497,7 @@ export default function SchoolAdminsPage({ schoolId }) {
                       className="btn"
                       onClick={() => setForm((prev) => ({ ...prev, temp_password: generateTempPassword() }))}
                     >
-                      Regenerate Temp Password
+                      {t("Regenerate Temp Password")}
                     </button>
                   </div>
                 ) : null}
@@ -503,9 +505,9 @@ export default function SchoolAdminsPage({ schoolId }) {
             )}
 
             <div className="super-school-admin-modal-actions" style={{ marginTop: 16 }}>
-              <button className="btn" onClick={() => setModalOpen(false)}>Cancel</button>
+              <button className="btn" onClick={() => setModalOpen(false)}>{t("Cancel")}</button>
               <button className="btn btn-primary" disabled={saving || existingAdminsLoading} onClick={saveAdmin}>
-                {saving ? "Saving..." : modalActionLabel}
+                {saving ? t("Saving...") : modalActionLabel}
               </button>
             </div>
           </div>

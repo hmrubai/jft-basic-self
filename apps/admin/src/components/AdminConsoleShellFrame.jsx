@@ -1,26 +1,7 @@
 "use client";
 
 import AdminLoadingState from "./AdminLoadingState";
-
-const NAV_ITEMS = [
-  { key: "announcements", label: "Announcements" },
-  { key: "students", label: "Student List" },
-  { key: "attendance", label: "Attendance" },
-  { key: "model", label: "Model Test" },
-  { key: "daily", label: "Daily Test" },
-  { key: "dailyRecord", label: "Schedule & Record" },
-  { key: "ranking", label: "Ranking" },
-];
-
-function getAdminPageTitle(activeTab) {
-  if (activeTab === "announcements") return "Announcements";
-  if (activeTab === "attendance") return "Attendance";
-  if (activeTab === "model") return "Model Test";
-  if (activeTab === "daily") return "Daily Test";
-  if (activeTab === "dailyRecord") return "Schedule & Record";
-  if (activeTab === "ranking") return "Ranking";
-  return "Student List";
-}
+import { useLanguage } from "../lib/i18n";
 
 export default function AdminConsoleShellFrame({
   schoolName = "",
@@ -32,6 +13,28 @@ export default function AdminConsoleShellFrame({
   onSelectTab = null,
   children = null,
 }) {
+  const { lang, setLang, t } = useLanguage();
+
+  const NAV_ITEMS = [
+    { key: "announcements", label: t("Announcements") },
+    { key: "students", label: t("Student List") },
+    { key: "attendance", label: t("Attendance") },
+    { key: "model", label: t("Model Test") },
+    { key: "daily", label: t("Daily Test") },
+    { key: "dailyRecord", label: t("Schedule & Record") },
+    { key: "ranking", label: t("Ranking") },
+  ];
+
+  function getAdminPageTitle(tab) {
+    if (tab === "announcements") return t("Announcements");
+    if (tab === "attendance") return t("Attendance");
+    if (tab === "model") return t("Model Test");
+    if (tab === "daily") return t("Daily Test");
+    if (tab === "dailyRecord") return t("Schedule & Record");
+    if (tab === "ranking") return t("Ranking");
+    return t("Student List");
+  }
+
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar">
@@ -41,7 +44,7 @@ export default function AdminConsoleShellFrame({
               <div className="admin-brand-title">
                 <img className="admin-brand-logo" src="/branding/jft-navi-color.png" alt="JFT Navi" />
               </div>
-              <div className="admin-brand-sub">Admin Console</div>
+              <div className="admin-brand-sub">{t("Admin Console")}</div>
             </div>
           </div>
         </div>
@@ -59,7 +62,23 @@ export default function AdminConsoleShellFrame({
           ))}
         </div>
         <div className="admin-sidebar-footer">
-          <div className="admin-email">{displayName || <AdminLoadingState compact label="Loading user..." />}</div>
+          <div className="admin-lang-toggle" role="group" aria-label={t("Language")}>
+            <button
+              className={`admin-lang-toggle-opt ${lang === "en" ? "active" : ""}`}
+              onClick={() => setLang("en")}
+              type="button"
+            >
+              EN
+            </button>
+            <button
+              className={`admin-lang-toggle-opt ${lang === "ja" ? "active" : ""}`}
+              onClick={() => setLang("ja")}
+              type="button"
+            >
+              日本語
+            </button>
+          </div>
+          <div className="admin-email">{displayName || <AdminLoadingState compact label={t("Loading user...")} />}</div>
         </div>
       </aside>
 
@@ -70,8 +89,8 @@ export default function AdminConsoleShellFrame({
             <div className="admin-page-topbar-meta">
               {schoolSelector || (
                 <div className="admin-school-switcher admin-topbar-school-switcher">
-                  <label>School</label>
-                  <div className="admin-topbar-school-label">{schoolName || <AdminLoadingState compact label="Loading school..." />}</div>
+                  <label>{t("School")}</label>
+                  <div className="admin-topbar-school-label">{schoolName || <AdminLoadingState compact label={t("Loading school...")} />}</div>
                 </div>
               )}
               {changeSchoolHref ? (
@@ -80,16 +99,16 @@ export default function AdminConsoleShellFrame({
                   type="button"
                   onClick={onChangeSchool}
                 >
-                  Change school
+                  {t("Change school")}
                 </button>
               ) : null}
-              <div className="admin-page-topbar-console">Admin Console</div>
+              <div className="admin-page-topbar-console">{t("Admin Console")}</div>
               <div className="admin-page-topbar-user">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" fill="currentColor" />
                   <path d="M4 20a8 8 0 0 1 16 0Z" fill="currentColor" />
                 </svg>
-                <span>{displayName || <AdminLoadingState compact label="Loading user..." />}</span>
+                <span>{displayName || <AdminLoadingState compact label={t("Loading user...")} />}</span>
               </div>
             </div>
           </div>

@@ -8,6 +8,7 @@ import {
   IRODORI_BOOK_OPTIONS,
   useDailyRecordWorkspaceState,
 } from "./AdminConsoleDailyRecordWorkspaceState";
+import { useLanguage } from "../lib/i18n";
 
 // Constants for candos
 const IRODORI_CANDO_BY_BOOK = {
@@ -138,6 +139,7 @@ function getIrodoriCanDoOptions(book, lesson) {
 }
 
 export default function AdminConsoleDailyRecordWorkspace() {
+  const { t } = useLanguage();
   const {
     activeSchoolId,
     supabase,
@@ -255,11 +257,11 @@ export default function AdminConsoleDailyRecordWorkspace() {
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <div className="admin-title">Schedule & Record</div>
+          <div className="admin-title">{t("Schedule & Record")}</div>
           <div className="attendance-control-row" style={{ marginTop: 0 }}>
             <div className="admin-form">
               <div className="field">
-                <label>Date</label>
+                <label>{t("Date")}</label>
                 <div className="daily-record-date-picker" ref={dailyRecordDatePickerRef}>
                   <button
                     className="daily-record-date-picker-trigger"
@@ -271,12 +273,12 @@ export default function AdminConsoleDailyRecordWorkspace() {
                     <span>
                       {dailyRecordDate
                         ? `${formatDateFull(dailyRecordDate)}${formatWeekday(dailyRecordDate) ? ` (${formatWeekday(dailyRecordDate)})` : ""}`
-                        : "Select date"}
+                        : t("Select date")}
                     </span>
                     <span aria-hidden="true">▾</span>
                   </button>
                   {dailyRecordDatePickerOpen ? (
-                    <div className="daily-record-date-picker-panel" role="dialog" aria-label="Select record date">
+                    <div className="daily-record-date-picker-panel" role="dialog" aria-label={t("Select date")}>
                       {dailyRecordActiveCalendarMonth ? (
                         <div className="daily-record-date-picker-month">
                           <div className="daily-record-date-picker-nav">
@@ -288,7 +290,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                                 const currentIndex = dailyRecordCalendarMonthKeys.indexOf(dailyRecordActiveCalendarMonth.monthKey);
                                 if (currentIndex > 0) setDailyRecordCalendarMonth(dailyRecordCalendarMonthKeys[currentIndex - 1]);
                               }}
-                              aria-label="Previous month"
+                              aria-label={t("Previous month")}
                             >
                               ‹
                             </button>
@@ -303,7 +305,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                                   setDailyRecordCalendarMonth(dailyRecordCalendarMonthKeys[currentIndex + 1]);
                                 }
                               }}
-                              aria-label="Next month"
+                              aria-label={t("Next month")}
                             >
                               ›
                             </button>
@@ -340,7 +342,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                                           setDailyRecordDatePickerOpen(false);
                                         }
                                       }}
-                                      title={cell.isHoliday ? "Holiday" : (cell.recordDate ? formatDateFull(cell.recordDate) : "")}
+                                      title={cell.isHoliday ? t("Holiday") : (cell.recordDate ? formatDateFull(cell.recordDate) : "")}
                                     >
                                       {cell.dayNumber}
                                     </button>
@@ -359,17 +361,17 @@ export default function AdminConsoleDailyRecordWorkspace() {
                 <label>&nbsp;</label>
                 <button className="btn btn-primary attendance-open-day-btn" type="button" onClick={() => {
                   if (!dailyRecordDate) {
-                    alert("Please select a date first");
+                    alert(t("Please select a date first"));
                     return;
                   }
                   try {
                     openDailyRecordModal(null, dailyRecordDate);
                   } catch (err) {
                     console.error("Open record error:", err);
-                    alert(`Failed to open record: ${err?.message || "Unknown error"}`);
+                    alert(`${t("Failed to open record:")} ${err?.message || "Unknown error"}`);
                   }
                 }}>
-                  Open Record
+                  {t("Open Record")}
                 </button>
               </div>
             </div>
@@ -377,8 +379,8 @@ export default function AdminConsoleDailyRecordWorkspace() {
         </div>
         <button
           className="btn admin-icon-action-btn"
-          aria-label="Refresh daily records"
-          title="Refresh daily records"
+          aria-label={t("Refresh daily records")}
+          title={t("Refresh daily records")}
           onClick={() => fetchDailyRecords()}
         >
           <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -405,16 +407,16 @@ export default function AdminConsoleDailyRecordWorkspace() {
         <table className="admin-table daily-record-table" style={{ minWidth: 1480 }}>
           <thead>
             <tr>
-              <th>Date</th>
-              <th className="daily-record-holiday-head">Holiday</th>
-              <th>Today&apos;s Content</th>
-              <th>Student Comments</th>
-              <th>Daily Test 1</th>
-              <th>Daily Test 2</th>
-              <th>Daily Test 3</th>
-              <th>Model Test 1</th>
-              <th>Model Test 2</th>
-              <th>Save Plan</th>
+              <th>{t("Date")}</th>
+              <th className="daily-record-holiday-head">{t("Holiday")}</th>
+              <th>{t("Today's Content")}</th>
+              <th>{t("Student Comments")}</th>
+              <th>{t("Daily Test 1")}</th>
+              <th>{t("Daily Test 2")}</th>
+              <th>{t("Daily Test 3")}</th>
+              <th>{t("Model Test 1")}</th>
+              <th>{t("Model Test 2")}</th>
+              <th>{t("Save Plan")}</th>
             </tr>
           </thead>
           <tbody>
@@ -463,7 +465,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                     {`${formatDateFull(recordDate)}${weekdayLabel ? ` (${weekdayLabel})` : ""}`}
                   </td>
                   <td className="daily-record-holiday-cell" onClick={(event) => event.stopPropagation()}>
-                    <label className="daily-session-create-switch daily-record-holiday-switch" aria-label={`Mark ${recordDate} as holiday`}>
+                    <label className="daily-session-create-switch daily-record-holiday-switch" aria-label={`${t("Holiday")} ${recordDate}`}>
                       <input
                         type="checkbox"
                         checked={display.isHoliday}
@@ -476,7 +478,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                   {collapseHolidayRow ? (
                     <>
                       <td colSpan={7} className="daily-record-holiday-summary">
-                        {dailyRecordHolidaySavingDate === recordDate ? "Saving..." : "Holiday"}
+                        {dailyRecordHolidaySavingDate === recordDate ? t("Saving...") : t("Holiday")}
                       </td>
                       <td className="daily-record-holiday-action-cell">
                         <button
@@ -485,7 +487,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                           onClick={() => enableDailyRecordPlanInput(recordDate)}
                           disabled={dailyRecordPlanSavingDate === recordDate}
                         >
-                          Input plan
+                          {t("Input plan")}
                         </button>
                       </td>
                     </>
@@ -494,7 +496,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                       <td>
                         {record?.todays_content
                           ? display.isHoliday
-                            ? <span className="daily-record-holiday-summary">HOLIDAY</span>
+                            ? <span className="daily-record-holiday-summary">{t("HOLIDAY")}</span>
                             : (() => {
                                 const summary = summarizeDailyRecordContent(record.todays_content);
                                 return summary.length > 140 ? `${summary.slice(0, 140)}...` : summary;
@@ -509,7 +511,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                           <DailyRecordPlanTextarea
                             value={display.mini_test_1}
                             onChange={(e) => updateDailyRecordPlanDraft(recordDate, "mini_test_1", e.target.value)}
-                            placeholder="Plan"
+                            placeholder={t("Plan")}
                           />
                         )}
                       </td>
@@ -520,7 +522,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                           <DailyRecordPlanTextarea
                             value={display.mini_test_2}
                             onChange={(e) => updateDailyRecordPlanDraft(recordDate, "mini_test_2", e.target.value)}
-                            placeholder="Plan"
+                            placeholder={t("Plan")}
                           />
                         )}
                       </td>
@@ -531,7 +533,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                           <DailyRecordPlanTextarea
                             value={display.mini_test_3}
                             onChange={(e) => updateDailyRecordPlanDraft(recordDate, "mini_test_3", e.target.value)}
-                            placeholder="Plan"
+                            placeholder={t("Plan")}
                           />
                         )}
                       </td>
@@ -542,7 +544,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                           <DailyRecordPlanTextarea
                             value={display.special_test_1}
                             onChange={(e) => updateDailyRecordPlanDraft(recordDate, "special_test_1", e.target.value)}
-                            placeholder="Plan"
+                            placeholder={t("Plan")}
                           />
                         )}
                       </td>
@@ -553,7 +555,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                           <DailyRecordPlanTextarea
                             value={display.special_test_2}
                             onChange={(e) => updateDailyRecordPlanDraft(recordDate, "special_test_2", e.target.value)}
-                            placeholder="Plan"
+                            placeholder={t("Plan")}
                           />
                         )}
                       </td>
@@ -565,12 +567,12 @@ export default function AdminConsoleDailyRecordWorkspace() {
                           disabled={rowIsLocked || dailyRecordPlanSavingDate === recordDate}
                         >
                           {rowIsLocked
-                            ? "Locked"
+                            ? t("Locked")
                             : dailyRecordPlanSavingDate === recordDate
-                              ? "Saving..."
+                              ? t("Saving...")
                               : display.hasRecord
-                                ? "Update Plan"
-                                : "Save Plan"}
+                                ? t("Update Plan")
+                                : t("Save Plan")}
                         </button>
                       </td>
                     </>
@@ -591,11 +593,11 @@ export default function AdminConsoleDailyRecordWorkspace() {
           <div className="admin-modal daily-record-modal daily-record-modal-shell" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <div className="admin-title">
-                Daily Record - {dailyRecordForm?.record_date ? formatDateFull(dailyRecordForm.record_date) : "New Record"}
+                {t("Daily Record - New Record")} {dailyRecordForm?.record_date ? `- ${formatDateFull(dailyRecordForm.record_date)}` : ""}
               </div>
               <button
                 className="admin-modal-close"
-                aria-label="Close"
+                aria-label={t("Close")}
                 onClick={() => closeDailyRecordModal()}
               >
                 ×
@@ -605,18 +607,18 @@ export default function AdminConsoleDailyRecordWorkspace() {
             <div className="daily-record-modal-body" style={{ maxHeight: "calc(100vh - 110px)", overflowY: "auto" }}>
               <section className="daily-record-modal-section">
                 <div className="daily-record-modal-section-head">
-                  <div className="daily-record-modal-section-title">Today's Content</div>
+                  <div className="daily-record-modal-section-title">{t("Today's Content")}</div>
                   <button
                     className="btn"
                     onClick={() => addDailyRecordTextbookEntry()}
                     type="button"
                   >
-                    Add Textbook Entry
+                    {t("Add Textbook Entry")}
                   </button>
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontWeight: 800 }}>Textbook Entries</label>
+                  <label style={{ display: "block", fontWeight: 800 }}>{t("Textbook Entries")}</label>
                   <div className="daily-record-textbook-list">
                     {(dailyRecordForm?.textbook_entries ?? []).map((entry) => {
                       const candoOptions = getIrodoriCanDoOptions(entry.book || "starter", entry.lesson || "1");
@@ -628,7 +630,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                                 className="daily-record-textbook-remove-icon"
                                 onClick={() => removeDailyRecordTextbookEntry(entry.tempId)}
                                 type="button"
-                                aria-label="Remove textbook entry"
+                                aria-label={t("Remove textbook entry")}
                               >
                                 ×
                               </button>
@@ -637,7 +639,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
 
                           <div className="daily-record-textbook-grid">
                             <div>
-                              <label>Book</label>
+                              <label>{t("Book")}</label>
                               <select
                                 value={entry.book || "starter"}
                                 onChange={(e) => updateDailyRecordTextbookEntry(entry.tempId, { book: e.target.value })}
@@ -650,13 +652,13 @@ export default function AdminConsoleDailyRecordWorkspace() {
                               </select>
                             </div>
                             <div>
-                              <label>Lesson</label>
+                              <label>{t("Lesson")}</label>
                               <select
                                 value={entry.lesson || "1"}
                                 onChange={(e) => updateDailyRecordTextbookEntry(entry.tempId, { lesson: e.target.value })}
                               >
                                 {Array.from({ length: 18 }, (_, i) => String(i + 1)).map((lessonNum) => (
-                                  <option key={lessonNum} value={lessonNum}>Lesson {lessonNum}</option>
+                                  <option key={lessonNum} value={lessonNum}>{t("Lesson")} {lessonNum}</option>
                                 ))}
                               </select>
                             </div>
@@ -664,7 +666,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
 
                           {candoOptions.length > 0 ? (
                             <div className="daily-record-cando-wrap">
-                              <label>Can-do Goals</label>
+                              <label>{t("Can-do Goals")}</label>
                               <div className="daily-record-cando-list">
                                 {candoOptions.map((candoId) => {
                                   const isSelected = (entry.cando_ids || []).includes(candoId);
@@ -690,26 +692,26 @@ export default function AdminConsoleDailyRecordWorkspace() {
 
                 <div className="daily-record-comments-section">
                   <div className="daily-record-comments-header">
-                    <div className="daily-record-modal-section-title">Other Content Covered</div>
+                    <div className="daily-record-modal-section-title">{t("Other Content Covered")}</div>
                   </div>
                   <textarea
                     className="daily-record-other-content"
                     value={dailyRecordForm?.free_writing || ""}
                     onChange={(e) => setDailyRecordForm((prev) => ({ ...prev, free_writing: e.target.value }))}
-                    placeholder="Additional content, activities, notes, etc."
+                    placeholder={t("Additional content, activities, notes, etc.")}
                   />
                 </div>
               </section>
 
               <section className="daily-record-modal-section">
                 <div className="daily-record-comments-header">
-                  <div className="daily-record-modal-section-title">Student Comments</div>
+                  <div className="daily-record-modal-section-title">{t("Student Comments")}</div>
                   <button
                     className="btn"
                     onClick={() => addDailyRecordCommentRow()}
                     type="button"
                   >
-                    Add Comment
+                    {t("Add Comment")}
                   </button>
                 </div>
 
@@ -722,7 +724,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                             className="daily-record-textbook-remove-icon"
                             onClick={() => removeDailyRecordCommentRow(comment.tempId)}
                             type="button"
-                            aria-label="Remove comment"
+                            aria-label={t("Remove comment")}
                           >
                             ×
                           </button>
@@ -731,12 +733,12 @@ export default function AdminConsoleDailyRecordWorkspace() {
 
                       <div className="daily-record-comment-fields">
                         <div>
-                          <label>Student</label>
+                          <label>{t("Student")}</label>
                           <select
                             value={comment.student_id || ""}
                             onChange={(e) => updateDailyRecordComment(comment.tempId, { student_id: e.target.value })}
                           >
-                            <option value="">Select student...</option>
+                            <option value="">{t("Select student...")}</option>
                             {(students ?? []).map((s) => (
                               <option key={s.id} value={s.id}>
                                 {s.display_name || s.email || s.id}
@@ -745,11 +747,11 @@ export default function AdminConsoleDailyRecordWorkspace() {
                           </select>
                         </div>
                         <div>
-                          <label>Comment</label>
+                          <label>{t("Comment")}</label>
                           <textarea
                             value={comment.comment || ""}
                             onChange={(e) => updateDailyRecordComment(comment.tempId, { comment: e.target.value })}
-                            placeholder="Enter comment..."
+                            placeholder={t("Enter comment...")}
                             rows={3}
                           />
                         </div>
@@ -763,7 +765,7 @@ export default function AdminConsoleDailyRecordWorkspace() {
                 <section className="daily-record-modal-section">
                   <div className="daily-record-upcoming-grid">
                     <div>
-                      <div className="daily-record-upcoming-label">{dailyRecordTomorrowSessions?.label || "Tomorrow's Exams"}</div>
+                      <div className="daily-record-upcoming-label">{dailyRecordTomorrowSessions?.label || t("Tomorrow's Exams")}</div>
                       <div className="daily-record-upcoming-list">
                         {(dailyRecordTomorrowSessions.regular ?? []).map((session, idx) => {
                           const startTime = session.starts_at
@@ -791,26 +793,26 @@ export default function AdminConsoleDailyRecordWorkspace() {
                     </div>
 
                     <div>
-                      <div className="daily-record-upcoming-label">Announcement to Students</div>
+                      <div className="daily-record-upcoming-label">{t("Announcement to Students")}</div>
                       <div className="daily-record-announcement-box">
                         <div className="daily-record-announcement-fields">
                           <div>
-                            <label>Subject</label>
+                            <label>{t("Subject")}</label>
                             <input
                               className="daily-record-announcement-title"
                               type="text"
                               value={dailyRecordAnnouncementTitleDraft || ""}
                               onChange={(e) => setDailyRecordAnnouncementTitleDraft(e.target.value)}
-                              placeholder="Announcement subject..."
+                              placeholder={t("Announcement subject...")}
                             />
                           </div>
                           <div>
-                            <label>Message</label>
+                            <label>{t("Message")}</label>
                             <textarea
                               className="daily-record-announcement-draft"
                               value={dailyRecordAnnouncementDraft || ""}
                               onChange={(e) => setDailyRecordAnnouncementDraft(e.target.value)}
-                              placeholder="Announcement message..."
+                              placeholder={t("Announcement message...")}
                             />
                           </div>
                         </div>
@@ -822,14 +824,14 @@ export default function AdminConsoleDailyRecordWorkspace() {
 
               <div className="daily-record-modal-actions">
                 <button className="btn" onClick={() => closeDailyRecordModal()} disabled={dailyRecordSaving} type="button">
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button className="btn btn-primary" onClick={() => saveDailyRecord()} disabled={dailyRecordSaving} type="button">
-                  {dailyRecordSaving ? "Saving..." : "Save Record"}
+                  {dailyRecordSaving ? t("Saving...") : t("Save Record")}
                 </button>
                 {hasTomorrowSessions ? (
                   <button className="btn btn-success" onClick={() => saveDailyRecord({ announcementAction: "send" })} disabled={dailyRecordSaving} type="button">
-                    {dailyRecordSaving ? "Saving..." : "Save Record & Send Announcement"}
+                    {dailyRecordSaving ? t("Saving...") : t("Save Record & Send Announcement")}
                   </button>
                 ) : null}
               </div>

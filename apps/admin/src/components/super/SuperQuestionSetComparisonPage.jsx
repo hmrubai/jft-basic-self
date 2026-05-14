@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSuperAdmin } from "./SuperAdminShell";
+import { useLanguage } from "../../lib/i18n";
 import { renderUnderlinesHtml } from "../../lib/adminQuestionText";
 import AdminLoadingState from "../AdminLoadingState";
 
@@ -133,6 +134,7 @@ function isQuestionAnswerCorrect(question, answerValue) {
 }
 
 export default function SuperQuestionSetComparisonPage({ questionSetId }) {
+  const { t } = useLanguage();
   const { supabase } = useSuperAdmin();
   const [filters, setFilters] = useState({
     schoolId: "all",
@@ -374,7 +376,7 @@ export default function SuperQuestionSetComparisonPage({ questionSetId }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Link
             href="/super/tests/analytics"
-            aria-label="Back to Analytics"
+            aria-label={t("Back to Analytics")}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -400,17 +402,17 @@ export default function SuperQuestionSetComparisonPage({ questionSetId }) {
             </svg>
           </Link>
           <div className="admin-title" style={{ margin: 0 }}>
-            {questionSet?.title || "Question Set"}
+            {questionSet?.title || t("Question Set")}
           </div>
         </div>
         <div className="admin-help" style={{ marginTop: 6 }}>
           {questionSet
             ? `${questionSet.test_type} • ${questionSet.visibility_scope}`
-            : "Selected question set comparison."}
+            : t("Selected question set comparison.")}
         </div>
         <div className="admin-form" style={{ marginTop: 12 }}>
           <div className="field small">
-            <label>Date From</label>
+            <label>{t("Date From")}</label>
             <input
               type="date"
               value={filters.from}
@@ -418,7 +420,7 @@ export default function SuperQuestionSetComparisonPage({ questionSetId }) {
             />
           </div>
           <div className="field small">
-            <label>Date To</label>
+            <label>{t("Date To")}</label>
             <input
               type="date"
               value={filters.to}
@@ -426,12 +428,12 @@ export default function SuperQuestionSetComparisonPage({ questionSetId }) {
             />
           </div>
           <div className="field small">
-            <label>School</label>
+            <label>{t("School")}</label>
             <select
               value={filters.schoolId}
               onChange={(event) => setFilters((prev) => ({ ...prev, schoolId: event.target.value }))}
             >
-              <option value="all">All schools</option>
+              <option value="all">{t("All schools")}</option>
               {schools.map((school) => (
                 <option key={school.id} value={school.id}>{school.name}</option>
               ))}
@@ -442,17 +444,17 @@ export default function SuperQuestionSetComparisonPage({ questionSetId }) {
       </div>
 
       <div className="admin-panel">
-        <div className="admin-title">Selected Question Set Comparison</div>
+        <div className="admin-title">{t("Selected Question Set Comparison")}</div>
         <div className="admin-help" style={{ marginTop: 6 }}>
-          Accuracy comparison for the selected question set across schools.
+          {t("Accuracy comparison for the selected question set across schools.")}
         </div>
         <div className="admin-table-wrap" style={{ marginTop: 12 }}>
           <table className="admin-table" style={{ minWidth: 720 }}>
             <thead>
               <tr>
-                <th>School</th>
-                <th>Attempts</th>
-                <th>Avg Score</th>
+                <th>{t("School")}</th>
+                <th>{t("Attempts")}</th>
+                <th>{t("Avg Score")}</th>
               </tr>
             </thead>
             <tbody>
@@ -465,12 +467,12 @@ export default function SuperQuestionSetComparisonPage({ questionSetId }) {
               ))}
               {!loading && questionSet && schoolRows.length === 0 ? (
                 <tr>
-                  <td colSpan={3}>No attempts found for this question set in the selected filters.</td>
+                  <td colSpan={3}>{t("No attempts found for this question set in the selected filters.")}</td>
                 </tr>
               ) : null}
               {loading ? (
                 <tr>
-                  <td colSpan={3}><AdminLoadingState compact label="Loading question-set comparison..." /></td>
+                  <td colSpan={3}><AdminLoadingState compact label={t("Loading question-set comparison...")} /></td>
                 </tr>
               ) : null}
             </tbody>
@@ -479,18 +481,18 @@ export default function SuperQuestionSetComparisonPage({ questionSetId }) {
       </div>
 
       <div className="admin-panel">
-        <div className="admin-title">Question Accuracy Comparison</div>
+        <div className="admin-title">{t("Question Accuracy Comparison")}</div>
         <div className="admin-help" style={{ marginTop: 6 }}>
-          Each row is a question from the selected question set. School columns show accuracy and correct count.
+          {t("Each row is a question from the selected question set. School columns show accuracy and correct count.")}
         </div>
         <div className="admin-table-wrap" style={{ marginTop: 12 }}>
           <table className="admin-table" style={{ minWidth: Math.max(960, 360 + (schoolRows.length * 160)) }}>
             <thead>
               <tr>
-                <th>QID</th>
-                <th>Section</th>
-                <th>Sub Section</th>
-                <th>Prompt</th>
+                <th>{t("QID")}</th>
+                <th>{t("Section")}</th>
+                <th>{t("Sub Section")}</th>
+                <th>{t("Prompt")}</th>
                 {schoolRows.map((row) => (
                   <th key={`question-school-head-${row.school_id}`}>{row.school_name}</th>
                 ))}
@@ -519,12 +521,12 @@ export default function SuperQuestionSetComparisonPage({ questionSetId }) {
               ))}
               {!loading && questionSet && questionRows.length === 0 ? (
                 <tr>
-                  <td colSpan={4 + Math.max(schoolRows.length, 1)}>No question rows found for this question set.</td>
+                  <td colSpan={4 + Math.max(schoolRows.length, 1)}>{t("No question rows found for this question set.")}</td>
                 </tr>
               ) : null}
               {loading ? (
                 <tr>
-                  <td colSpan={4 + Math.max(schoolRows.length, 1)}><AdminLoadingState compact label="Loading question accuracy comparison..." /></td>
+                  <td colSpan={4 + Math.max(schoolRows.length, 1)}><AdminLoadingState compact label={t("Loading question accuracy comparison...")} /></td>
                 </tr>
               ) : null}
             </tbody>

@@ -53,6 +53,7 @@ import {
   preloadAdminConsoleStudentsWorkspace,
   preloadAdminConsoleTestingWorkspace,
 } from "./adminConsoleLoader";
+import { useLanguage } from "../lib/i18n";
 
 const ADMIN_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const ADMIN_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -3226,6 +3227,7 @@ export default function AdminConsole({
   initialDailySubTab = "results",
 }) {
   const router = useRouter();
+  const { lang, setLang, t } = useLanguage();
   const routerRef = useRef(router);
   const renderTraceLoggedRef = useRef(false);
   const forcedSchoolId = forcedSchoolScope?.id ?? null;
@@ -12515,7 +12517,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
               <span>Go to Schools</span>
             </Link>
           ) : null}
-          <button className="btn" onClick={() => supabase.auth.signOut()}>Sign out</button>
+          <button className="btn" onClick={() => supabase.auth.signOut()}>{t("Sign out")}</button>
         </div>
       </div>
     );
@@ -12583,28 +12585,28 @@ function openDailyRecordModal(record = null, recordDate = "") {
 
   const displayName = profile?.display_name?.trim() || session?.user?.email || "User";
   const adminPageTitle = (() => {
-    if (activeTab === "students") return "Student List";
+    if (activeTab === "students") return t("Student List");
     if (activeTab === "attendance") {
-      return attendanceSubTab === "absence" ? "Absence Applications" : "Attendance Sheet";
+      return attendanceSubTab === "absence" ? t("Absence Applications") : t("Attendance Sheet");
     }
-    if (activeTab === "dailyRecord") return "Schedule & Record";
-    if (activeTab === "ranking") return "Ranking";
-    if (activeTab === "announcements") return "Announcements";
+    if (activeTab === "dailyRecord") return t("Schedule & Record");
+    if (activeTab === "ranking") return t("Ranking");
+    if (activeTab === "announcements") return t("Announcements");
     if (activeTab === "model") {
-      if (sessionDetail.type === "mock" && sessionDetail.sessionId) return "Test Session Detail";
-      if (modelSubTab === "results") return "Model Test Results";
-      if (modelSubTab === "upload") return "Upload Question Set";
-      if (modelSubTab === "sets") return "Sets";
-      return "Test Sessions";
+      if (sessionDetail.type === "mock" && sessionDetail.sessionId) return t("Test Session Detail");
+      if (modelSubTab === "results") return t("Model Test Results");
+      if (modelSubTab === "upload") return t("Upload Question Set");
+      if (modelSubTab === "sets") return t("Sets");
+      return t("Test Sessions");
     }
     if (activeTab === "daily") {
-      if (sessionDetail.type === "daily" && sessionDetail.sessionId) return "Daily Test Session Detail";
-      if (dailySubTab === "results") return "Daily Test Results";
-      if (dailySubTab === "upload") return "Upload Question Set";
-      if (dailySubTab === "conduct") return "Daily Test Sessions";
-      return "Daily Test Sessions";
+      if (sessionDetail.type === "daily" && sessionDetail.sessionId) return t("Daily Test Session Detail");
+      if (dailySubTab === "results") return t("Daily Test Results");
+      if (dailySubTab === "upload") return t("Upload Question Set");
+      if (dailySubTab === "conduct") return t("Daily Test Sessions");
+      return t("Daily Test Sessions");
     }
-    return "Admin Console";
+    return t("Admin Console");
   })();
   const workspaceContextValue = {
     supabase,
@@ -12845,7 +12847,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                 <path d="M7 8h10M7 12h6" />
               </svg>
             </span>
-            Announcements
+            {t("Announcements")}
           </button>
 
           <button
@@ -12860,7 +12862,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                 <path d="M12 19c1-2 3-3 5-3 2.5 0 4 1.4 4 4" />
               </svg>
             </span>
-            Student List
+            {t("Student List")}
           </button>
 
           <div className={`admin-nav-group ${activeTab === "attendance" ? "active" : ""}`}>
@@ -12874,7 +12876,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                   <path d="M8 3v4M16 3v4M4 9h16" />
                 </svg>
               </span>
-              Attendance
+              {t("Attendance")}
               <span className={`admin-nav-arrow ${activeTab === "attendance" ? "open" : ""}`}>▾</span>
             </button>
             {activeTab === "attendance" ? (
@@ -12883,13 +12885,13 @@ function openDailyRecordModal(record = null, recordDate = "") {
                   className={`admin-subnav-item ${attendanceSubTab === "sheet" ? "active" : ""}`}
                   onClick={() => handleSidebarMenuClick(() => selectAttendanceTab("sheet"))}
                 >
-                  Attendance Sheet
+                  {t("Attendance Sheet")}
                 </button>
                 <button
                   className={`admin-subnav-item ${attendanceSubTab === "absence" ? "active" : ""}`}
                   onClick={() => handleSidebarMenuClick(() => selectAttendanceTab("absence"))}
                 >
-                  <span>Absence Applications</span>
+                  <span>{t("Absence Applications")}</span>
                   {attendancePendingApplicationCount > 0 ? (
                     <span className="admin-subnav-count-badge" aria-label={`${attendancePendingApplicationCount} pending absence applications`}>
                       {attendancePendingApplicationCount}
@@ -12911,7 +12913,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                   <path d="M8 5v14" />
                 </svg>
               </span>
-              Model Test
+              {t("Model Test")}
               <span className={`admin-nav-arrow ${activeTab === "model" ? "open" : ""}`}>▾</span>
             </button>
             {activeTab === "model" ? (
@@ -12920,19 +12922,19 @@ function openDailyRecordModal(record = null, recordDate = "") {
                   className={`admin-subnav-item ${modelSubTab === "results" ? "active" : ""}`}
                   onClick={() => handleSidebarMenuClick(() => selectModelTab("results"))}
                 >
-                  Model Test Results
+                  {t("Model Test Results")}
                 </button>
                 <button
                   className={`admin-subnav-item ${modelSubTab === "conduct" ? "active" : ""}`}
                   onClick={() => handleSidebarMenuClick(() => selectModelTab("conduct"))}
                 >
-                  Create Test Session
+                  {t("Create Test Session")}
                 </button>
                 <button
                   className={`admin-subnav-item ${modelSubTab === "upload" ? "active" : ""}`}
                   onClick={() => handleSidebarMenuClick(() => selectModelTab("upload"))}
                 >
-                  Upload Question Set
+                  {t("Upload Question Set")}
                 </button>
               </div>
             ) : null}
@@ -12950,7 +12952,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                   <path d="M9 12h6M9 16h6" />
                 </svg>
               </span>
-              Daily Test
+              {t("Daily Test")}
               <span className={`admin-nav-arrow ${activeTab === "daily" ? "open" : ""}`}>▾</span>
             </button>
             {activeTab === "daily" ? (
@@ -12959,19 +12961,19 @@ function openDailyRecordModal(record = null, recordDate = "") {
                   className={`admin-subnav-item ${dailySubTab === "results" ? "active" : ""}`}
                   onClick={() => handleSidebarMenuClick(() => selectDailyTab("results"))}
                 >
-                  Daily Test Results
+                  {t("Daily Test Results")}
                 </button>
                 <button
                   className={`admin-subnav-item ${dailySubTab === "conduct" ? "active" : ""}`}
                   onClick={() => handleSidebarMenuClick(() => selectDailyTab("conduct"))}
                 >
-                  Create Test Session
+                  {t("Create Test Session")}
                 </button>
                 <button
                   className={`admin-subnav-item ${dailySubTab === "upload" ? "active" : ""}`}
                   onClick={() => handleSidebarMenuClick(() => selectDailyTab("upload"))}
                 >
-                  Upload Question Set
+                  {t("Upload Question Set")}
                 </button>
               </div>
             ) : null}
@@ -12987,7 +12989,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                 <path d="M9 8h6M9 12h6M9 16h4" />
               </svg>
             </span>
-            Schedule & Record
+            {t("Schedule & Record")}
           </button>
 
           <button
@@ -13002,7 +13004,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                 <path d="M17 17v-6" />
               </svg>
             </span>
-            Ranking
+            {t("Ranking")}
           </button>
 
         </div>
@@ -13012,8 +13014,12 @@ function openDailyRecordModal(record = null, recordDate = "") {
             <Link className="admin-nav-item" href={homeHref}>{homeLabel}</Link>
           ) : null}
           <button className="admin-nav-item logout" onClick={() => supabase.auth.signOut()}>
-            Sign out
+            {t("Sign out")}
           </button>
+          <div className="admin-lang-toggle" role="group" aria-label={t("Language")}>
+            <button className={`admin-lang-toggle-opt ${lang === "en" ? "active" : ""}`} onClick={() => setLang("en")} type="button">EN</button>
+            <button className={`admin-lang-toggle-opt ${lang === "ja" ? "active" : ""}`} onClick={() => setLang("ja")} type="button">日本語</button>
+          </div>
         </div>
       </aside>
 
@@ -13024,7 +13030,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
             <div className="admin-page-topbar-meta">
               {forcedSchoolId && profile?.role === "super_admin" ? (
                 <div className="admin-school-switcher admin-topbar-school-switcher">
-                  <label htmlFor="admin-school-switcher">School</label>
+                  <label htmlFor="admin-school-switcher">{t("School")}</label>
                   <select
                     id="admin-school-switcher"
                     value={activeSchoolId ?? ""}
@@ -13033,7 +13039,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                     {forcedSchoolOptions.map((schoolOption) => (
                       <option key={schoolOption.school_id} value={schoolOption.school_id}>
                         {schoolOption.school_name}
-                        {schoolOption.school_status === "inactive" ? " (Inactive)" : ""}
+                        {schoolOption.school_status === "inactive" ? ` ${t("(Inactive)")}` : ""}
                       </option>
                     ))}
                   </select>
@@ -13041,7 +13047,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
               ) : null}
               {!forcedSchoolId && profile?.role === "admin" ? (
                 <div className="admin-school-switcher admin-topbar-school-switcher">
-                  <label htmlFor="admin-school-switcher">School</label>
+                  <label htmlFor="admin-school-switcher">{t("School")}</label>
                   {schoolAssignments.length > 1 ? (
                     <select
                       id="admin-school-switcher"
@@ -13062,9 +13068,9 @@ function openDailyRecordModal(record = null, recordDate = "") {
                 </div>
               ) : null}
               {changeSchoolHref && profile?.role !== "super_admin" ? (
-                <Link className="btn admin-topbar-link" href={changeSchoolHref}>Change school</Link>
+                <Link className="btn admin-topbar-link" href={changeSchoolHref}>{t("Change school")}</Link>
               ) : null}
-              <div className="admin-page-topbar-console">Admin Console</div>
+              <div className="admin-page-topbar-console">{t("Admin Console")}</div>
               <div className="admin-page-topbar-user">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" fill="currentColor" />

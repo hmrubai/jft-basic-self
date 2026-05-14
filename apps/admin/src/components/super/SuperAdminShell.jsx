@@ -12,6 +12,7 @@ import { createAdminTrace, isAbortLikeError, logAdminEvent, logAdminRequestFailu
 import { DEFAULT_REQUEST_TIMEOUT_MS, fetchWithTimeout } from "../../lib/requestTimeout";
 import { syncAdminAuthCookie } from "../../lib/authCookies";
 import AdminLoadingState from "../AdminLoadingState";
+import { useLanguage } from "../../lib/i18n";
 
 const SuperAdminContext = createContext(null);
 const ADMIN_SIDEBAR_COLLAPSE_STORAGE_KEY = "jft_admin_sidebar_collapsed_v1";
@@ -23,54 +24,56 @@ function waitForRetry(delayMs) {
   });
 }
 
-const superNav = [
-  {
-    label: "Dashboard",
-    href: "/super/dashboard",
-    icon: (
-      <svg viewBox="0 0 24 24" className="admin-nav-svg">
-        <path d="M4 13h6v7H4zM14 4h6v16h-6zM4 4h6v5H4zM14 14h6v6h-6z" />
-      </svg>
-    ),
-  },
-  {
-    label: "Schools",
-    href: "/super/schools",
-    icon: (
-      <svg viewBox="0 0 24 24" className="admin-nav-svg">
-        <path d="M3 20h18" />
-        <path d="M6 20V8l6-4 6 4v12" />
-        <path d="M9 12h.01M15 12h.01M9 16h.01M15 16h.01" />
-      </svg>
-    ),
-  },
-  {
-    label: "Tests Management",
-    icon: (
-      <svg viewBox="0 0 24 24" className="admin-nav-svg">
-        <path d="M7 4h10l3 3v13H7z" />
-        <path d="M17 4v4h4" />
-        <path d="M10 12h7M10 16h7M10 8h3" />
-      </svg>
-    ),
-    children: [
-      { label: "Import Questions", href: "/super/tests/import" },
-      { label: "Analytics", href: "/super/tests/analytics" },
-    ],
-  },
-  {
-    label: "Audit / Logs",
-    href: "/super/audit",
-    icon: (
-      <svg viewBox="0 0 24 24" className="admin-nav-svg">
-        <path d="M8 4h8" />
-        <path d="M9 2h6v4H9z" />
-        <path d="M6 6h12v16H6z" />
-        <path d="M9 11h6M9 15h6" />
-      </svg>
-    ),
-  },
-];
+function buildSuperNav(t) {
+  return [
+    {
+      label: t("Dashboard"),
+      href: "/super/dashboard",
+      icon: (
+        <svg viewBox="0 0 24 24" className="admin-nav-svg">
+          <path d="M4 13h6v7H4zM14 4h6v16h-6zM4 4h6v5H4zM14 14h6v6h-6z" />
+        </svg>
+      ),
+    },
+    {
+      label: t("Schools"),
+      href: "/super/schools",
+      icon: (
+        <svg viewBox="0 0 24 24" className="admin-nav-svg">
+          <path d="M3 20h18" />
+          <path d="M6 20V8l6-4 6 4v12" />
+          <path d="M9 12h.01M15 12h.01M9 16h.01M15 16h.01" />
+        </svg>
+      ),
+    },
+    {
+      label: t("Tests Management"),
+      icon: (
+        <svg viewBox="0 0 24 24" className="admin-nav-svg">
+          <path d="M7 4h10l3 3v13H7z" />
+          <path d="M17 4v4h4" />
+          <path d="M10 12h7M10 16h7M10 8h3" />
+        </svg>
+      ),
+      children: [
+        { label: t("Import Questions"), href: "/super/tests/import" },
+        { label: t("Analytics"), href: "/super/tests/analytics" },
+      ],
+    },
+    {
+      label: t("Audit / Logs"),
+      href: "/super/audit",
+      icon: (
+        <svg viewBox="0 0 24 24" className="admin-nav-svg">
+          <path d="M8 4h8" />
+          <path d="M9 2h6v4H9z" />
+          <path d="M6 6h12v16H6z" />
+          <path d="M9 11h6M9 15h6" />
+        </svg>
+      ),
+    },
+  ];
+}
 
 function isActivePath(pathname, href) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -80,53 +83,53 @@ function isScopedAdminConsolePath(pathname) {
   return /^\/super\/schools\/[^/]+\/admin(?:\/.*)?$/.test(pathname ?? "");
 }
 
-function getPageMeta(pathname) {
+function getPageMeta(pathname, t) {
   if (pathname === "/super/dashboard") {
     return {
-      title: "Dashboard",
-      description: "Global system overview across schools, tests, and activity.",
+      title: t("Dashboard"),
+      description: t("Global system overview across schools, tests, and activity."),
     };
   }
   if (pathname === "/super/schools") {
     return {
-      title: "Schools",
-      description: "Manage schools, review metrics, and enter school-scoped admin mode.",
+      title: t("Schools"),
+      description: t("Manage schools, review metrics, and enter school-scoped admin mode."),
     };
   }
   if (/^\/super\/schools\/[^/]+\/admins$/.test(pathname ?? "")) {
     return {
-      title: "School Admins",
-      description: "Manage school-level admin accounts for the selected school.",
+      title: t("School Admins"),
+      description: t("Manage school-level admin accounts for the selected school."),
     };
   }
   if (pathname === "/super/tests/import") {
     return {
-      title: "Upload Question Sets",
-      description: "Manage the global question-set library for daily and model tests.",
+      title: t("Upload Question Sets"),
+      description: t("Manage the global question-set library for daily and model tests."),
     };
   }
   if (pathname === "/super/tests/analytics") {
     return {
-      title: "Analytics",
-      description: "Cross-school test analytics workspace for filters, comparisons, and trends.",
+      title: t("Analytics"),
+      description: t("Cross-school test analytics workspace for filters, comparisons, and trends."),
     };
   }
   if (/^\/super\/tests\/analytics\/[^/]+$/.test(pathname ?? "")) {
     return {
-      title: "Question Set Comparison",
-      description: "School-by-school and question-by-question comparison for a selected question set.",
+      title: t("Question Set Comparison"),
+      description: t("School-by-school and question-by-question comparison for a selected question set."),
     };
   }
   if (pathname === "/super/audit") {
     return {
-      title: "Audit / Logs",
-      description: "Operational audit history and system events will live here.",
+      title: t("Audit / Logs"),
+      description: t("Operational audit history and system events will live here."),
     };
   }
 
   return {
-    title: "Super Admin",
-    description: "Global administration workspace.",
+    title: t("Super Admin"),
+    description: t("Global administration workspace."),
   };
 }
 
@@ -152,7 +155,7 @@ function UserBadgeIcon() {
   );
 }
 
-function buildOpenGroups(pathname) {
+function buildOpenGroups(pathname, superNav) {
   const groups = {};
   for (const item of superNav) {
     if (item.children?.length) {
@@ -163,11 +166,13 @@ function buildOpenGroups(pathname) {
 }
 
 function SuperSidebar({ pathname, email, onNavigate, onSignOut, sidebarCollapsed, onToggleSidebar }) {
-  const [openGroups, setOpenGroups] = useState(() => buildOpenGroups(pathname));
+  const { lang, setLang, t } = useLanguage();
+  const superNav = buildSuperNav(t);
+  const [openGroups, setOpenGroups] = useState(() => buildOpenGroups(pathname, superNav));
 
   useEffect(() => {
-    setOpenGroups(buildOpenGroups(pathname));
-  }, [pathname]);
+    setOpenGroups(buildOpenGroups(pathname, superNav));
+  }, [pathname, lang]);
 
   return (
     <aside className={`admin-sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
@@ -176,7 +181,7 @@ function SuperSidebar({ pathname, email, onNavigate, onSignOut, sidebarCollapsed
         <button
           className="admin-sidebar-toggle"
           type="button"
-          aria-label={sidebarCollapsed ? "Expand menu" : "Collapse menu"}
+          aria-label={sidebarCollapsed ? t("Expand menu") : t("Collapse menu")}
           aria-expanded={!sidebarCollapsed}
           onClick={onToggleSidebar}
         >
@@ -195,7 +200,7 @@ function SuperSidebar({ pathname, email, onNavigate, onSignOut, sidebarCollapsed
                   type="button"
                   className={`admin-nav-item admin-group-toggle ${open ? "active" : ""}`}
                   onClick={() => {
-                    const next = buildOpenGroups("");
+                    const next = buildOpenGroups("", superNav);
                     next[item.label] = true;
                     setOpenGroups(next);
                     const firstChildHref = item.children[0]?.href;
@@ -236,7 +241,7 @@ function SuperSidebar({ pathname, email, onNavigate, onSignOut, sidebarCollapsed
               className={`admin-nav-item ${isActivePath(pathname, item.href) ? "active" : ""}`}
               onClick={(event) => {
                 event.preventDefault();
-                setOpenGroups(buildOpenGroups(item.href));
+                setOpenGroups(buildOpenGroups(item.href, superNav));
                 onNavigate(item.href);
               }}
             >
@@ -247,9 +252,25 @@ function SuperSidebar({ pathname, email, onNavigate, onSignOut, sidebarCollapsed
         })}
       </div>
       <div className="admin-sidebar-footer">
+        <div className="admin-lang-toggle" role="group" aria-label={t("Language")}>
+          <button
+            className={`admin-lang-toggle-opt ${lang === "en" ? "active" : ""}`}
+            onClick={() => setLang("en")}
+            type="button"
+          >
+            EN
+          </button>
+          <button
+            className={`admin-lang-toggle-opt ${lang === "ja" ? "active" : ""}`}
+            onClick={() => setLang("ja")}
+            type="button"
+          >
+            日本語
+          </button>
+        </div>
         <div className="admin-email">{email}</div>
         <button className="admin-nav-item logout" onClick={onSignOut}>
-          Sign out
+          {t("Sign out")}
         </button>
       </div>
     </aside>
@@ -265,6 +286,7 @@ export function useSuperAdmin() {
 }
 
 export default function SuperAdminShell({ children }) {
+  const { t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
   const bypassShellAuth = isScopedAdminConsolePath(pathname);
@@ -769,12 +791,12 @@ export default function SuperAdminShell({ children }) {
     content = children;
   } else if (loading) {
     content = (
-      <AdminLoadingState centered label="Loading..." />
+      <AdminLoadingState centered label={t("Loading...")} />
     );
   } else if (startupError) {
     content = (
       <div className="admin-login">
-        <h2>Startup Error</h2>
+        <h2>{t("Startup Error")}</h2>
         <div className="admin-msg">{startupError}</div>
         <button
           className="admin-password-change-secondary"
@@ -783,12 +805,12 @@ export default function SuperAdminShell({ children }) {
             void handleStartupRecovery();
           }}
         >
-          SIGN OUT AND RETRY
+          {t("SIGN OUT AND RETRY")}
         </button>
       </div>
     );
   } else if (session && profile) {
-    const pageMeta = getPageMeta(pathname);
+    const pageMeta = getPageMeta(pathname, t);
     const displayName = profile.display_name?.trim() || session.user.email || "User";
     function handleSidebarNavigate(href) {
       if (sidebarCollapsed) {
@@ -812,7 +834,7 @@ export default function SuperAdminShell({ children }) {
             <div className="super-page-topbar">
               <div className="super-page-topbar-title">{pageMeta.title}</div>
               <div className="super-page-topbar-meta">
-                <div className="super-page-topbar-console">Superadmin Console</div>
+                <div className="super-page-topbar-console">{t("Superadmin Console")}</div>
                 <div className="super-page-topbar-user">
                   <UserBadgeIcon />
                   <span>{displayName}</span>

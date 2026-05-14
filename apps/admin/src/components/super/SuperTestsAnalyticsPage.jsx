@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSuperAdmin } from "./SuperAdminShell";
 import AdminLoadingState from "../AdminLoadingState";
+import { useLanguage } from "../../lib/i18n";
 
 function toDateInput(date) {
   return date.toISOString().slice(0, 10);
@@ -34,6 +35,7 @@ function formatVersionLabel(row) {
 export default function SuperTestsAnalyticsPage() {
   const { supabase } = useSuperAdmin();
   const router = useRouter();
+  const { t } = useLanguage();
   const [filters, setFilters] = useState({
     schoolId: "all",
     testType: "all",
@@ -153,13 +155,13 @@ export default function SuperTestsAnalyticsPage() {
   return (
     <div className="super-page-content">
       <div className="admin-panel">
-        <div className="admin-title">Analytics Filters</div>
+        <div className="admin-title">{t("Analytics Filters")}</div>
         <div className="admin-help" style={{ marginTop: 6 }}>
-          School comparison uses aggregate metrics. Click a question set below to open its school and question accuracy breakdown.
+          {t("School comparison uses aggregate metrics. Click a question set below to open its school and question accuracy breakdown.")}
         </div>
         <div className="admin-form" style={{ marginTop: 12 }}>
           <div className="field small">
-            <label>Date From</label>
+            <label>{t("Date From")}</label>
             <input
               type="date"
               value={filters.from}
@@ -167,7 +169,7 @@ export default function SuperTestsAnalyticsPage() {
             />
           </div>
           <div className="field small">
-            <label>Date To</label>
+            <label>{t("Date To")}</label>
             <input
               type="date"
               value={filters.to}
@@ -175,26 +177,26 @@ export default function SuperTestsAnalyticsPage() {
             />
           </div>
           <div className="field small">
-            <label>School</label>
+            <label>{t("School")}</label>
             <select
               value={filters.schoolId}
               onChange={(event) => setFilters((prev) => ({ ...prev, schoolId: event.target.value }))}
             >
-              <option value="all">All schools</option>
+              <option value="all">{t("All schools")}</option>
               {schools.map((school) => (
                 <option key={school.id} value={school.id}>{school.name}</option>
               ))}
             </select>
           </div>
           <div className="field small">
-            <label>Test Type</label>
+            <label>{t("Test Type")}</label>
             <select
               value={filters.testType}
               onChange={(event) => setFilters((prev) => ({ ...prev, testType: event.target.value }))}
             >
-              <option value="all">All</option>
-              <option value="daily">Daily</option>
-              <option value="model">Model</option>
+              <option value="all">{t("All")}</option>
+              <option value="daily">{t("Daily")}</option>
+              <option value="model">{t("Model")}</option>
             </select>
           </div>
         </div>
@@ -202,20 +204,20 @@ export default function SuperTestsAnalyticsPage() {
       </div>
 
       <div className="admin-panel">
-        <div className="admin-title">School Comparison</div>
+        <div className="admin-title">{t("School Comparison")}</div>
         <div className="admin-help" style={{ marginTop: 6 }}>
-          Student count is all-time. Test counts and averages use the selected date range and test-type filter.
+          {t("Student count is all-time. Test counts and averages use the selected date range and test-type filter.")}
         </div>
         <div className="admin-table-wrap" style={{ marginTop: 12 }}>
           <table className="admin-table" style={{ minWidth: 960 }}>
             <thead>
               <tr>
-                <th>School</th>
-                <th>Student Count</th>
-                <th>Tests Taken</th>
-                <th>Avg Score (Daily)</th>
-                <th>Avg Score (Model)</th>
-                <th>Attendance Avg</th>
+                <th>{t("School")}</th>
+                <th>{t("Student Count")}</th>
+                <th>{t("Tests Taken")}</th>
+                <th>{t("Avg Score (Daily)")}</th>
+                <th>{t("Avg Score (Model)")}</th>
+                <th>{t("Attendance Avg")}</th>
               </tr>
             </thead>
             <tbody>
@@ -231,12 +233,12 @@ export default function SuperTestsAnalyticsPage() {
               ))}
               {!loading && schoolRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>No school analytics found for the selected filters.</td>
+                  <td colSpan={6}>{t("No school analytics found for the selected filters.")}</td>
                 </tr>
               ) : null}
               {loading ? (
                 <tr>
-                  <td colSpan={6}><AdminLoadingState compact label="Loading analytics..." /></td>
+                  <td colSpan={6}><AdminLoadingState compact label={t("Loading analytics...")} /></td>
                 </tr>
               ) : null}
             </tbody>
@@ -245,21 +247,21 @@ export default function SuperTestsAnalyticsPage() {
       </div>
 
       <div className="admin-panel">
-        <div className="admin-title">Question Set Performance</div>
+        <div className="admin-title">{t("Question Set Performance")}</div>
         <div className="admin-help" style={{ marginTop: 6 }}>
-          Rows below are question sets from the shared library. Click one to open its comparison page.
+          {t("Rows below are question sets from the shared library. Click one to open its comparison page.")}
         </div>
         <div className="admin-table-wrap" style={{ marginTop: 12 }}>
           <table className="admin-table" style={{ minWidth: 920 }}>
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Ver.</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Visibility</th>
-                <th>Questions</th>
-                <th>Schools</th>
+                <th>{t("Title")}</th>
+                <th>{t("Ver.")}</th>
+                <th>{t("Type")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Visibility")}</th>
+                <th>{t("Questions")}</th>
+                <th>{t("Schools")}</th>
               </tr>
             </thead>
             <tbody>
@@ -280,12 +282,12 @@ export default function SuperTestsAnalyticsPage() {
               ))}
               {!loading && questionSetRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>No question sets found for the selected filters.</td>
+                  <td colSpan={7}>{t("No question sets found for the selected filters.")}</td>
                 </tr>
               ) : null}
               {loading ? (
                 <tr>
-                  <td colSpan={7}><AdminLoadingState compact label="Loading question sets..." /></td>
+                  <td colSpan={7}><AdminLoadingState compact label={t("Loading question sets...")} /></td>
                 </tr>
               ) : null}
             </tbody>

@@ -563,6 +563,35 @@ body { padding: 0; }
   word-break: break-all;
 }
 
+.admin-lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f2f4f7;
+  border: 1px solid var(--admin-control-border);
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  align-self: flex-start;
+}
+
+.admin-lang-toggle-opt {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  color: #666;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.admin-lang-toggle-opt.active {
+  background: #3f6b0f;
+  color: #fff;
+}
+
 .admin-nav-item.active::before,
 .admin-subnav-item.active::before {
   content: "";

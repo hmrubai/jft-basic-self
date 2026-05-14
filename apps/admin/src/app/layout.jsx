@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import AdminStartupDiagnostics from "../components/AdminStartupDiagnostics";
+import { LanguageProvider } from "../lib/i18n";
 
 export const metadata = {
   title: "JFT Navi Admin Panel",
@@ -25,7 +26,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <AdminStartupDiagnostics />
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
         <Analytics />
       </body>
     </html>

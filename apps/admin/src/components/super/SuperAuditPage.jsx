@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSuperAdmin } from "./SuperAdminShell";
 import AdminLoadingState from "../AdminLoadingState";
+import { useLanguage } from "../../lib/i18n";
 
 function toDateInput(date) {
   return date.toISOString().slice(0, 10);
@@ -59,6 +60,7 @@ function formatAuditDateTime(value) {
 
 export default function SuperAuditPage() {
   const { supabase } = useSuperAdmin();
+  const { t } = useLanguage();
   const [filters, setFilters] = useState({
     entityType: "all",
     schoolId: "all",
@@ -107,7 +109,7 @@ export default function SuperAuditPage() {
 
       if (error) {
         setLogs([]);
-        setMsg(error.message || "Failed to load audit logs.");
+        setMsg(error.message || t("Failed to load audit logs."));
         setLoading(false);
         return;
       }
@@ -128,11 +130,11 @@ export default function SuperAuditPage() {
     <div className="super-page-content">
       <div className="admin-panel">
         <div className="admin-help">
-          Concise audit history for super admin and admin actions that affect other users.
+          {t("Concise audit history for super admin and admin actions that affect other users.")}
         </div>
         <div className="admin-form" style={{ marginTop: 12 }}>
           <div className="field small">
-            <label>Date From</label>
+            <label>{t("Date From")}</label>
             <input
               type="date"
               value={filters.from}
@@ -140,7 +142,7 @@ export default function SuperAuditPage() {
             />
           </div>
           <div className="field small">
-            <label>Date To</label>
+            <label>{t("Date To")}</label>
             <input
               type="date"
               value={filters.to}
@@ -148,35 +150,35 @@ export default function SuperAuditPage() {
             />
           </div>
           <div className="field small">
-            <label>Entity Type</label>
+            <label>{t("Entity Type")}</label>
             <select
               value={filters.entityType}
               onChange={(event) => setFilters((prev) => ({ ...prev, entityType: event.target.value }))}
             >
-              <option value="all">All</option>
-              <option value="school">School</option>
-              <option value="admin">Admin</option>
-              <option value="question_set">Question Set</option>
-              <option value="question_set_version">Question Set Version</option>
-              <option value="question_set_visibility">Question Set Visibility</option>
-              <option value="test_session">Test Session</option>
-              <option value="daily_record">Daily Record</option>
-              <option value="attendance_day">Attendance Day</option>
-              <option value="attendance_import">Attendance Import</option>
-              <option value="question_import">Question Import</option>
-              <option value="results_import">Results Import</option>
-              <option value="announcement">Announcement</option>
-              <option value="student">Student</option>
-              <option value="absence_application">Absence Application</option>
+              <option value="all">{t("All")}</option>
+              <option value="school">{t("School")}</option>
+              <option value="admin">{t("Admin")}</option>
+              <option value="question_set">{t("Question Set")}</option>
+              <option value="question_set_version">{t("Question Set Version")}</option>
+              <option value="question_set_visibility">{t("Question Set Visibility")}</option>
+              <option value="test_session">{t("Test Session")}</option>
+              <option value="daily_record">{t("Daily Record")}</option>
+              <option value="attendance_day">{t("Attendance Day")}</option>
+              <option value="attendance_import">{t("Attendance Import")}</option>
+              <option value="question_import">{t("Question Import")}</option>
+              <option value="results_import">{t("Results Import")}</option>
+              <option value="announcement">{t("Announcement")}</option>
+              <option value="student">{t("Student")}</option>
+              <option value="absence_application">{t("Absence Application")}</option>
             </select>
           </div>
           <div className="field small">
-            <label>School</label>
+            <label>{t("School")}</label>
             <select
               value={filters.schoolId}
               onChange={(event) => setFilters((prev) => ({ ...prev, schoolId: event.target.value }))}
             >
-              <option value="all">All schools</option>
+              <option value="all">{t("All schools")}</option>
               {schools.map((school) => (
                 <option key={school.id} value={school.id}>{school.name}</option>
               ))}
@@ -191,10 +193,10 @@ export default function SuperAuditPage() {
           <table className="admin-table" style={{ minWidth: 1100 }}>
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Actor</th>
-                <th>Activity</th>
-                <th>School</th>
+                <th>{t("Time")}</th>
+                <th>{t("Actor")}</th>
+                <th>{t("Activity")}</th>
+                <th>{t("School")}</th>
               </tr>
             </thead>
             <tbody>
@@ -208,17 +210,17 @@ export default function SuperAuditPage() {
                   <td>
                     <div>{buildAuditSummary(row)}</div>
                   </td>
-                  <td>{row.school_id ? schoolMap[row.school_id] ?? row.school_id : "Global"}</td>
+                  <td>{row.school_id ? schoolMap[row.school_id] ?? row.school_id : t("Global")}</td>
                 </tr>
               ))}
               {!loading && logs.length === 0 ? (
                 <tr>
-                  <td colSpan={4}>No audit logs found for the selected filters.</td>
+                  <td colSpan={4}>{t("No audit logs found for the selected filters.")}</td>
                 </tr>
               ) : null}
               {loading ? (
                 <tr>
-                  <td colSpan={4}><AdminLoadingState compact label="Loading audit logs..." /></td>
+                  <td colSpan={4}><AdminLoadingState compact label={t("Loading audit logs...")} /></td>
                 </tr>
               ) : null}
             </tbody>

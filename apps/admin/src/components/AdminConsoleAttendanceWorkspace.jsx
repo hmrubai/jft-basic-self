@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLanguage } from "../lib/i18n";
 import { useAdminConsoleWorkspaceContext } from "./AdminConsoleWorkspaceContext";
 import { useAttendanceWorkspaceState } from "./AdminConsoleAttendanceWorkspaceState";
 import AdminStatusMessage from "./AdminStatusMessage";
@@ -30,6 +31,7 @@ function formatWeekdayFn(d) {
 }
 
 export default function AdminConsoleAttendanceWorkspace() {
+  const { t } = useLanguage();
   const {
     activeSchoolId,
     supabase,
@@ -182,16 +184,16 @@ export default function AdminConsoleAttendanceWorkspace() {
       <div style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <div>
-            <div className="admin-title">Absence Applications</div>
-            <div className="admin-subtitle">Review and approve/deny student applications.</div>
+            <div className="admin-title">{t("Absence Applications")}</div>
+            <div className="admin-subtitle">{t("Review and approve/deny student applications.")}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
               className={`btn admin-icon-action-btn attendance-filter-toggle-btn ${absenceApplicationFilterOpen || hasAbsenceApplicationFilterValue ? "active" : ""}`}
               type="button"
-              aria-label={absenceApplicationFilterOpen ? "Hide absence application filters" : "Show absence application filters"}
+              aria-label={absenceApplicationFilterOpen ? t("Hide absence application filters") : t("Show absence application filters")}
               aria-expanded={absenceApplicationFilterOpen}
-              title={absenceApplicationFilterOpen ? "Hide filters" : hasAbsenceApplicationFilterValue ? "Show filters (active)" : "Show filters"}
+              title={absenceApplicationFilterOpen ? t("Hide filters") : hasAbsenceApplicationFilterValue ? t("Show filters (active)") : t("Show filters")}
               onClick={() => setAbsenceApplicationFilterOpen((current) => !current)}
             >
               <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -229,8 +231,8 @@ export default function AdminConsoleAttendanceWorkspace() {
             </button>
             <button
               className="btn admin-icon-action-btn"
-              aria-label="Refresh absence applications"
-              title="Refresh absence applications"
+              aria-label={t("Refresh absence applications")}
+              title={t("Refresh absence applications")}
               onClick={() => fetchAbsenceApplications()}
             >
               <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -258,7 +260,7 @@ export default function AdminConsoleAttendanceWorkspace() {
           <div style={{ marginTop: 18 }}>
             <div className="admin-form attendance-filter-box">
               <div className="field small">
-                <label className="attendance-filter-label">Student Name</label>
+                <label className="attendance-filter-label">{t("Student Name")}</label>
                 <select
                   value={absenceApplicationFilter.studentId}
                   onChange={(event) =>
@@ -268,7 +270,7 @@ export default function AdminConsoleAttendanceWorkspace() {
                     }))
                   }
                 >
-                  <option value="all">All</option>
+                  <option value="all">{t("All")}</option>
                   {absenceApplicationStudentOptions.map((student) => (
                     <option key={student.value} value={student.value}>
                       {student.label}
@@ -277,7 +279,7 @@ export default function AdminConsoleAttendanceWorkspace() {
                 </select>
               </div>
               <div className="field small">
-                <label className="attendance-filter-label">Type</label>
+                <label className="attendance-filter-label">{t("Type")}</label>
                 <select
                   value={absenceApplicationFilter.type}
                   onChange={(event) =>
@@ -287,13 +289,13 @@ export default function AdminConsoleAttendanceWorkspace() {
                     }))
                   }
                 >
-                  <option value="all">All</option>
-                  <option value="excused">Excused Absence</option>
-                  <option value="late">Late/Leave Early</option>
+                  <option value="all">{t("All")}</option>
+                  <option value="excused">{t("Excused Absence")}</option>
+                  <option value="late">{t("Late/Leave Early")}</option>
                 </select>
               </div>
               <div className="field small">
-                <label className="attendance-filter-label">Date</label>
+                <label className="attendance-filter-label">{t("Date")}</label>
                 <input
                   type="date"
                   value={absenceApplicationFilter.dayDate}
@@ -318,7 +320,7 @@ export default function AdminConsoleAttendanceWorkspace() {
                     })
                   }
                 >
-                  Clear Filter
+                  {t("Clear Filter")}
                 </button>
               </div>
             </div>
@@ -329,15 +331,15 @@ export default function AdminConsoleAttendanceWorkspace() {
           <table className="admin-table" style={{ minWidth: 900 }}>
             <thead>
               <tr>
-                <th>Submitted</th>
-                <th>Student</th>
-                <th>Type</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Reason</th>
-                <th>Catch Up</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>{t("Submitted")}</th>
+                <th>{t("Student")}</th>
+                <th>{t("Type")}</th>
+                <th>{t("Date")}</th>
+                <th>{t("Time")}</th>
+                <th>{t("Reason")}</th>
+                <th>{t("Catch Up")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Action")}</th>
               </tr>
             </thead>
             <tbody>
@@ -345,7 +347,7 @@ export default function AdminConsoleAttendanceWorkspace() {
                 const student = a.profiles || {};
                 const name = student.display_name || student.email || a.student_id;
                 const code = student.student_code ? ` (${student.student_code})` : "";
-                const typeLabel = a.type === "excused" ? "Excused Absence" : "Late/Leave Early";
+                const typeLabel = a.type === "excused" ? t("Excused Absence") : t("Late/Leave Early");
                 const timeLabel =
                   a.type === "late"
                     ? `${a.late_type === "leave_early" ? "Leave" : "Arrive"}: ${a.time_value || "-"}`
@@ -364,10 +366,10 @@ export default function AdminConsoleAttendanceWorkspace() {
                           {a.status === "pending" ? (
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                               <button className="btn btn-primary" onClick={() => decideAbsenceApplication(a.id, "approved")}>
-                                Approve
+                                {t("Approve")}
                               </button>
                               <button className="btn btn-danger" onClick={() => openDenyAbsenceApplication(a)}>
-                                Deny
+                                {t("Deny")}
                               </button>
                             </div>
                           ) : (
@@ -379,7 +381,7 @@ export default function AdminConsoleAttendanceWorkspace() {
               })}
               {!absenceApplicationsMsg && absenceApplications.length > 0 && filteredAbsenceApplications.length === 0 ? (
                 <tr>
-                  <td colSpan={9}>No absence applications match the selected filters.</td>
+                  <td colSpan={9}>{t("No absence applications match the selected filters.")}</td>
                 </tr>
               ) : null}
             </tbody>
@@ -395,7 +397,7 @@ export default function AdminConsoleAttendanceWorkspace() {
             >
               <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="admin-modal-header">
-                  <div className="admin-title">Deny Application</div>
+                  <div className="admin-title">{t("Deny Application")}</div>
                   <button
                     className="admin-modal-close"
                     type="button"
@@ -408,19 +410,19 @@ export default function AdminConsoleAttendanceWorkspace() {
                 </div>
                 <div style={{ display: "grid", gap: 10 }}>
                   <div className="admin-subtitle">
-                    Comment is optional and will be shown to the student.
+                    {t("Comment is optional and will be shown to the student.")}
                   </div>
                   <div className="admin-help">
                     <div>
-                      <strong>Student:</strong>{" "}
+                      <strong>{t("Student:")}</strong>{" "}
                       {String(denyApplicationModal.application?.profiles?.display_name || denyApplicationModal.application?.student_id || "Student")}
                     </div>
                     <div>
-                      <strong>Date:</strong> {String(denyApplicationModal.application?.day_date || "")}
+                      <strong>{t("Date:")}</strong> {String(denyApplicationModal.application?.day_date || "")}
                     </div>
                   </div>
                   <label style={{ display: "grid", gap: 6 }}>
-                    <span className="admin-help">Comment (optional)</span>
+                    <span className="admin-help">{t("Comment (optional)")}</span>
                     <textarea
                       value={denyApplicationModal.comment}
                       onChange={(e) =>
@@ -430,7 +432,7 @@ export default function AdminConsoleAttendanceWorkspace() {
                         }))
                       }
                       rows={4}
-                      placeholder="Add a note for the student, or leave blank."
+                      placeholder={t("Add a note for the student, or leave blank.")}
                       style={{
                         width: "100%",
                         minHeight: 110,
@@ -448,10 +450,10 @@ export default function AdminConsoleAttendanceWorkspace() {
                 </div>
                 <div className="admin-modal-actions" style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
                   <button className="btn" type="button" onClick={closeDenyAbsenceApplication} disabled={denyApplicationModal.saving}>
-                    Cancel
+                    {t("Cancel")}
                   </button>
                   <button className="btn btn-danger" type="button" onClick={confirmDenyAbsenceApplication} disabled={denyApplicationModal.saving}>
-                    {denyApplicationModal.saving ? "Denying..." : "Deny"}
+                    {denyApplicationModal.saving ? t("Denying...") : t("Deny")}
                   </button>
                 </div>
               </div>
@@ -468,7 +470,7 @@ export default function AdminConsoleAttendanceWorkspace() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, flexWrap: "nowrap", marginTop: 10 }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 10, flex: "0 0 auto" }}>
           <div>
-            <label style={{ display: "block", fontWeight: 800, marginBottom: 6, color: "var(--admin-text)" }}>Date</label>
+            <label style={{ display: "block", fontWeight: 800, marginBottom: 6, color: "var(--admin-text)" }}>{t("Date")}</label>
             <input
               type="date"
               value={attendanceDate}
@@ -485,22 +487,22 @@ export default function AdminConsoleAttendanceWorkspace() {
           </div>
           <button className="btn btn-primary attendance-open-day-btn" type="button" onClick={() => {
             if (!attendanceDate) {
-              alert("Please select a date first");
+              alert(t("Please select a date first"));
               return;
             }
             openAttendanceDay(attendanceDate, { confirmExisting: true }).catch((err) => {
               console.error("Open day error:", err);
-              alert(`Failed to open day: ${err?.message || "Unknown error"}`);
+              alert(`${t("Failed to open day:")} ${err?.message || "Unknown error"}`);
             });
           }}>
-            Open Day
+            {t("Open Day")}
           </button>
           <button
             className={`btn admin-icon-action-btn attendance-filter-toggle-btn ${attendanceFilterOpen || hasAttendanceFilterValue ? "active" : ""}`}
             type="button"
-            aria-label={attendanceFilterOpen ? "Hide attendance filters" : "Show attendance filters"}
+            aria-label={attendanceFilterOpen ? t("Hide attendance filters") : t("Show attendance filters")}
             aria-expanded={attendanceFilterOpen}
-            title={attendanceFilterOpen ? "Hide filters" : hasAttendanceFilterValue ? "Show filters (active)" : "Show filters"}
+            title={attendanceFilterOpen ? t("Hide filters") : hasAttendanceFilterValue ? t("Show filters (active)") : t("Show filters")}
             onClick={() => setAttendanceFilterOpen((current) => !current)}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -541,8 +543,8 @@ export default function AdminConsoleAttendanceWorkspace() {
           <button
             className="btn admin-icon-action-btn"
             type="button"
-            aria-label="Refresh attendance sheet"
-            title="Refresh attendance sheet"
+            aria-label={t("Refresh attendance sheet")}
+            title={t("Refresh attendance sheet")}
             disabled={attendanceSheetRefreshing}
             aria-busy={attendanceSheetRefreshing}
             onClick={() => {
@@ -572,7 +574,7 @@ export default function AdminConsoleAttendanceWorkspace() {
           </button>
           <button className="btn results-page-action-btn" type="button" onClick={exportAttendanceGoogleSheetsCsv}>
             <span className="results-page-action-icon" aria-hidden="true">↓</span>
-            <span>Export CSV</span>
+            <span>{t("Export CSV")}</span>
           </button>
           <button
             className="btn results-page-action-btn"
@@ -580,7 +582,7 @@ export default function AdminConsoleAttendanceWorkspace() {
             onClick={() => attendanceImportInputRef.current?.click()}
           >
             <span className="results-page-action-icon" aria-hidden="true">↑</span>
-            <span>Import CSV</span>
+            <span>{t("Import CSV")}</span>
           </button>
           <input
             ref={attendanceImportInputRef}
@@ -599,28 +601,28 @@ export default function AdminConsoleAttendanceWorkspace() {
         <div style={{ marginTop: 18 }}>
           <div className="admin-form attendance-filter-box">
             <div className="field small">
-              <label className="attendance-filter-label">Filter (Rate &lt;)</label>
+              <label className="attendance-filter-label">{t("Filter (Rate <)")}</label>
               <input
                 type="number"
                 min="0"
                 max="100"
-                placeholder="e.g. 80"
+                placeholder={t("e.g. 80")}
                 value={attendanceFilter.minRate}
                 onChange={(e) => setAttendanceFilter((s) => ({ ...s, minRate: e.target.value }))}
               />
             </div>
             <div className="field small">
-              <label className="attendance-filter-label">Filter (Unexcused ≥)</label>
+              <label className="attendance-filter-label">{t("Filter (Unexcused ≥)")}</label>
               <input
                 type="number"
                 min="0"
-                placeholder="e.g. 3"
+                placeholder={t("e.g. 3")}
                 value={attendanceFilter.minAbsences}
                 onChange={(e) => setAttendanceFilter((s) => ({ ...s, minAbsences: e.target.value }))}
               />
             </div>
             <div className="field small">
-              <label className="attendance-filter-label">Range From</label>
+              <label className="attendance-filter-label">{t("Range From")}</label>
               <input
                 type="date"
                 value={attendanceFilter.startDate}
@@ -628,7 +630,7 @@ export default function AdminConsoleAttendanceWorkspace() {
               />
             </div>
             <div className="field small">
-              <label className="attendance-filter-label">Range To</label>
+              <label className="attendance-filter-label">{t("Range To")}</label>
               <input
                 type="date"
                 value={attendanceFilter.endDate}
@@ -642,7 +644,7 @@ export default function AdminConsoleAttendanceWorkspace() {
                 type="button"
                 onClick={() => setAttendanceFilter({ minRate: "", minAbsences: "", startDate: "", endDate: "" })}
               >
-                Clear Filter
+                {t("Clear Filter")}
               </button>
             </div>
           </div>
@@ -660,14 +662,14 @@ export default function AdminConsoleAttendanceWorkspace() {
                 <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite" />
               </circle>
             </svg>
-            <AdminLoadingState compact label="Loading..." className="admin-loading-state-inline-left" />
+            <AdminLoadingState compact label={t("Loading...")} className="admin-loading-state-inline-left" />
           </div>
         ) : null}
         <button
           className="attendance-month-nav-btn"
           type="button"
-          aria-label="Previous month"
-          title="Previous month"
+          aria-label={t("Previous month")}
+          title={t("Previous month")}
           disabled={attendanceSheetRefreshing}
           aria-busy={attendanceSheetRefreshing}
           onClick={() => goToPreviousMonth()}
@@ -681,8 +683,8 @@ export default function AdminConsoleAttendanceWorkspace() {
           <button
             className="attendance-month-nav-btn"
             type="button"
-            aria-label="Next month"
-            title="Next month"
+            aria-label={t("Next month")}
+            title={t("Next month")}
             disabled={attendanceSheetRefreshing}
             aria-busy={attendanceSheetRefreshing}
             onClick={() => goToNextMonth()}
@@ -703,11 +705,11 @@ export default function AdminConsoleAttendanceWorkspace() {
 
       <div className="attendance-table-header">
         <div className="admin-help">
-          <span className="att-legend-item att-legend-present">P: Present</span>
-          <span className="att-legend-item att-legend-late">L: Late/Leave Early</span>
-          <span className="att-legend-item att-legend-excused">E: Excused Absence</span>
-          <span className="att-legend-item att-legend-absent">A: Unexcused Absence</span>
-          <span className="att-legend-item">N/A: Not Counted</span>
+          <span className="att-legend-item att-legend-present">{t("P: Present")}</span>
+          <span className="att-legend-item att-legend-late">{t("L: Late/Leave Early")}</span>
+          <span className="att-legend-item att-legend-excused">{t("E: Excused Absence")}</span>
+          <span className="att-legend-item att-legend-absent">{t("A: Unexcused Absence")}</span>
+          <span className="att-legend-item">{t("N/A: Not Counted")}</span>
         </div>
       </div>
 
@@ -715,10 +717,10 @@ export default function AdminConsoleAttendanceWorkspace() {
         <table className="admin-table attendance-table">
           <thead>
             <tr>
-              <th className="att-col-code att-sticky-1">Student<br />No.</th>
-              <th className="att-col-name att-sticky-2">Student Name</th>
-              <th className="att-col-rate att-sticky-3">Attendance<br />Rate</th>
-              <th className="att-col-absent att-sticky-4">Unexcused<br />Absence</th>
+              <th className="att-col-code att-sticky-1">{t("Student No.")}</th>
+              <th className="att-col-name att-sticky-2">{t("Student Name")}</th>
+              <th className="att-col-rate att-sticky-3">{t("Attendance Rate")}</th>
+              <th className="att-col-absent att-sticky-4">{t("Unexcused Absence")}</th>
               {attendanceDayColumns.map((d) => (
                 <th key={d.id}>
                   <button className="link-btn" type="button" onClick={() => openAttendanceDay(d.day_date)}>
@@ -743,14 +745,14 @@ export default function AdminConsoleAttendanceWorkspace() {
                   <td className="att-col-name att-sticky-2">
                     <div className="student-list-name-cell">
                       {s.is_test_account ? (
-                        <span className="student-test-account-badge" title="Test Account" aria-label="Test Account">
+                        <span className="student-test-account-badge" title={t("Test Account")} aria-label={t("Test Account")}>
                           T
                         </span>
                       ) : null}
                       <span>{s.display_name ?? s.email ?? s.id}</span>
                     </div>
                   </td>
-                  <td className="att-col-rate att-sticky-3">{rate == null ? "N/A" : `${rate.toFixed(2)}%`}</td>
+                  <td className="att-col-rate att-sticky-3">{rate == null ? t("N/A") : `${rate.toFixed(2)}%`}</td>
                   <td className="att-col-absent att-sticky-4">{rowStats?.unexcused ?? stats.unexcused}</td>
                   {attendanceDayColumns.map((d) => {
                     const status = attendanceEntriesByDay?.[d.id]?.[s.id]?.status || "N/A";

@@ -5,6 +5,7 @@ import { useAdminConsoleWorkspaceContext } from "./AdminConsoleWorkspaceContext"
 import { useRankingWorkspaceState } from "./AdminConsoleRankingWorkspaceState";
 import AdminLoadingState from "./AdminLoadingState";
 import AdminStatusMessage from "./AdminStatusMessage";
+import { useLanguage } from "../lib/i18n";
 
 const bangladeshDateTimeOptions = {
   timeZone: "Asia/Dhaka",
@@ -18,6 +19,7 @@ const bangladeshDateTimeOptions = {
 };
 
 export default function AdminConsoleRankingWorkspace() {
+  const { t } = useLanguage();
   const { supabase, activeSchoolId, session, testSessions, tests } = useAdminConsoleWorkspaceContext();
   const {
     rankingPeriods,
@@ -74,7 +76,7 @@ export default function AdminConsoleRankingWorkspace() {
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 10, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div className="admin-title">Ranking</div>
+          <div className="admin-title">{t("Ranking")}</div>
           <button className="btn btn-primary admin-compact-action-btn admin-upload-cta-btn" type="button" onClick={addRankingPeriod}>
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path
@@ -85,7 +87,7 @@ export default function AdminConsoleRankingWorkspace() {
                 strokeLinecap="round"
               />
             </svg>
-            Add Period
+            {t("Add Period")}
           </button>
         </div>
       </div>
@@ -94,7 +96,7 @@ export default function AdminConsoleRankingWorkspace() {
         <table className="admin-table ranking-table" style={{ minWidth: Math.max(420, 160 + rankingPeriods.length * 260) }}>
           <thead>
             <tr>
-              <th rowSpan={2}>Rank</th>
+              <th rowSpan={2}>{t("Rank")}</th>
               {rankingPeriods.map((period) => {
                 const draft = rankingDrafts[period.id] ?? { label: period.label ?? "", start_date: "", end_date: "" };
                 return (
@@ -108,7 +110,7 @@ export default function AdminConsoleRankingWorkspace() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter") e.currentTarget.blur();
                         }}
-                        placeholder="Period name"
+                        placeholder={t("Period name")}
                         aria-label={`Name for ${period.label}`}
                         className="admin-input"
                         style={{ minWidth: 0, width: "100%" }}
@@ -117,7 +119,7 @@ export default function AdminConsoleRankingWorkspace() {
                         className="btn btn-primary admin-icon-action-btn ranking-refresh-btn"
                         type="button"
                         aria-label={`Refresh ${draft.label || period.label || "ranking period"}`}
-                        title={rankingRefreshingId === period.id ? "Refreshing..." : "Refresh period"}
+                        title={rankingRefreshingId === period.id ? t("Refreshing...") : t("Refresh period")}
                         onClick={() => refreshRankingPeriod(period)}
                         disabled={rankingRefreshingId === period.id}
                       >
@@ -143,7 +145,7 @@ export default function AdminConsoleRankingWorkspace() {
                         className="btn btn-danger admin-icon-action-btn ranking-delete-btn"
                         type="button"
                         aria-label={`Delete ${draft.label || period.label || "ranking period"}`}
-                        title="Delete period"
+                        title={t("Delete period")}
                         onClick={() => deleteRankingPeriod(period)}
                         disabled={rankingRefreshingId === period.id}
                       >
@@ -165,7 +167,7 @@ export default function AdminConsoleRankingWorkspace() {
                         value={draft.start_date}
                         onChange={(e) => updateRankingDraft(period.id, "start_date", e.target.value)}
                       />
-                      <span>to</span>
+                      <span>{t("to")}</span>
                       <input
                         type="date"
                         value={draft.end_date}
@@ -179,8 +181,8 @@ export default function AdminConsoleRankingWorkspace() {
             <tr>
               {rankingPeriods.map((period) => (
                 <Fragment key={`cols-${period.id}`}>
-                  <th>Student</th>
-                  <th>Average %</th>
+                  <th>{t("Student")}</th>
+                  <th>{t("Average %")}</th>
                 </Fragment>
               ))}
             </tr>
@@ -205,7 +207,7 @@ export default function AdminConsoleRankingWorkspace() {
                               type="button"
                               className="ranking-entry-button"
                               onClick={() => openRankingEntryDetail(period, entry)}
-                              title="View scores used for this ranking"
+                              title={t("View scores used for this ranking")}
                             >
                               {entry.student_name || "-"}
                             </button>
@@ -223,7 +225,7 @@ export default function AdminConsoleRankingWorkspace() {
                               type="button"
                               className="ranking-entry-button ranking-entry-button-average"
                               onClick={() => openRankingEntryDetail(period, entry)}
-                              title="View scores used for this ranking"
+                              title={t("View scores used for this ranking")}
                             >
                               {(Number(entry.average_rate) * 100).toFixed(2)}%
                             </button>
@@ -239,7 +241,7 @@ export default function AdminConsoleRankingWorkspace() {
             ) : (
               <tr>
                 <td colSpan={Math.max(1, 1 + rankingPeriods.length * 2)} className="ranking-empty-cell">
-                  {rankingPeriods.length ? "Press Refresh to calculate the configured periods." : "No ranking periods yet. Click Add Period."}
+                  {rankingPeriods.length ? t("Press Refresh to calculate the configured periods.") : t("No ranking periods yet. Click Add Period.")}
                 </td>
               </tr>
             )}
@@ -251,20 +253,20 @@ export default function AdminConsoleRankingWorkspace() {
         <div className="admin-modal-overlay" onClick={closeRankingEntryDetail}>
           <div className="admin-modal ranking-detail-modal" onClick={(event) => event.stopPropagation()}>
             <div className="admin-modal-header">
-              <div className="admin-title">Ranking Details</div>
-              <button className="admin-modal-close" onClick={closeRankingEntryDetail} aria-label="Close">
+              <div className="admin-title">{t("Ranking Details")}</div>
+              <button className="admin-modal-close" onClick={closeRankingEntryDetail} aria-label={t("Close")}>
                 ×
               </button>
             </div>
             <div className="ranking-detail-summary">
-              <div><strong>Period:</strong> {rankingDetailModal.periodLabel || "-"}</div>
-              <div><strong>Student:</strong> {rankingDetailModal.studentName || "-"}</div>
-              <div><strong>Rank:</strong> {rankingDetailModal.rankPosition != null ? `#${rankingDetailModal.rankPosition}` : "-"}</div>
-              <div><strong>Average:</strong> {Number.isFinite(rankingDetailModal.averageRate) ? `${(rankingDetailModal.averageRate * 100).toFixed(2)}%` : "-"}</div>
-              <div><strong>Range:</strong> {rankingDetailModal.startDate && rankingDetailModal.endDate ? `${rankingDetailModal.startDate} to ${rankingDetailModal.endDate}` : "-"}</div>
+              <div><strong>{t("Period:")}</strong> {rankingDetailModal.periodLabel || "-"}</div>
+              <div><strong>{t("Student:")}</strong> {rankingDetailModal.studentName || "-"}</div>
+              <div><strong>{t("Rank:")}</strong> {rankingDetailModal.rankPosition != null ? `#${rankingDetailModal.rankPosition}` : "-"}</div>
+              <div><strong>{t("Average:")}</strong> {Number.isFinite(rankingDetailModal.averageRate) ? `${(rankingDetailModal.averageRate * 100).toFixed(2)}%` : "-"}</div>
+              <div><strong>{t("Range:")}</strong> {rankingDetailModal.startDate && rankingDetailModal.endDate ? `${rankingDetailModal.startDate} ${t("to")} ${rankingDetailModal.endDate}` : "-"}</div>
             </div>
             {rankingDetailModal.loading ? (
-              <AdminLoadingState compact label="Loading scores..." />
+              <AdminLoadingState compact label={t("Loading scores...")} />
             ) : rankingDetailModal.error ? (
               <div className="ranking-detail-state ranking-detail-error">{rankingDetailModal.error}</div>
             ) : rankingDetailModal.usedAttempts.length ? (
@@ -272,10 +274,10 @@ export default function AdminConsoleRankingWorkspace() {
                 <table className="admin-table ranking-detail-table">
                   <thead>
                     <tr>
-                      <th>Scope</th>
-                      <th>Score</th>
-                      <th>Correct / Total</th>
-                      <th>Completed</th>
+                      <th>{t("Scope")}</th>
+                      <th>{t("Score")}</th>
+                      <th>{t("Correct / Total")}</th>
+                      <th>{t("Completed")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -300,7 +302,7 @@ export default function AdminConsoleRankingWorkspace() {
                 </table>
               </div>
             ) : (
-              <div className="ranking-detail-state">No scores were found in this period for this student.</div>
+              <div className="ranking-detail-state">{t("No scores were found in this period for this student.")}</div>
             )}
           </div>
         </div>

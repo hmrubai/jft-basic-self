@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getStudentWithdrawalDate, getTodayYmd } from "../lib/studentWithdrawal";
+import { useLanguage } from "../lib/i18n";
 import { useAdminConsoleWorkspaceContext } from "./AdminConsoleWorkspaceContext";
 import { useStudentsWorkspaceState } from "./AdminConsoleStudentsWorkspaceState";
 import AdminLoadingState from "./AdminLoadingState";
@@ -11,6 +12,7 @@ import AdminStatusMessage from "./AdminStatusMessage";
 const LazyAdminConsoleResultsWorkspace = dynamic(() => import("./AdminConsoleResultsWorkspace"));
 
 export default function AdminConsoleStudentsWorkspace() {
+  const { t } = useLanguage();
   const contextData = useAdminConsoleWorkspaceContext();
   const {
     activeSchoolId,
@@ -328,12 +330,12 @@ export default function AdminConsoleStudentsWorkspace() {
         <>
           <div style={{ marginTop: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <div className="admin-title">Student List</div>
+              <div className="admin-title">{t("Student List")}</div>
               <button className="btn btn-primary student-list-primary-btn" onClick={() => setInviteOpen(true)}>
                 <svg viewBox="0 0 20 20" aria-hidden="true">
                   <path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                <span>Add New Student</span>
+                <span>{t("Add New Student")}</span>
               </button>
               <button
                 className="btn student-list-primary-btn student-warning-launch-btn"
@@ -345,14 +347,14 @@ export default function AdminConsoleStudentsWorkspace() {
                 <svg viewBox="0 0 20 20" aria-hidden="true">
                   <path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                <span>Warnings</span>
+                <span>{t("Warnings")}</span>
               </button>
               <button
                 className={`btn admin-icon-action-btn attendance-filter-toggle-btn ${studentListFilterOpen || hasStudentListFilterValue ? "active" : ""}`}
                 type="button"
-                aria-label={studentListFilterOpen ? "Hide student filters" : "Show student filters"}
+                aria-label={studentListFilterOpen ? t("Hide student filters") : t("Show student filters")}
                 aria-expanded={studentListFilterOpen}
-                title={studentListFilterOpen ? "Hide filters" : hasStudentListFilterValue ? "Show filters (active)" : "Show filters"}
+                title={studentListFilterOpen ? t("Hide filters") : hasStudentListFilterValue ? t("Show filters (active)") : t("Show filters")}
                 onClick={() => setStudentListFilterOpen((current) => !current)}
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -395,8 +397,8 @@ export default function AdminConsoleStudentsWorkspace() {
                 type="button"
                 onClick={() => void loadMetrics()}
                 disabled={studentListLoading}
-                aria-label={studentListLoading ? "Loading metrics" : studentListMetricsLoaded ? "Refresh metrics" : "Load metrics"}
-                title={studentListLoading ? "Loading metrics..." : studentListMetricsLoaded ? "Refresh metrics" : "Load metrics"}
+                aria-label={studentListLoading ? t("Loading Metrics...") : studentListMetricsLoaded ? t("Refresh Metrics") : t("Load Metrics")}
+                title={studentListLoading ? t("Loading Metrics...") : studentListMetricsLoaded ? t("Refresh Metrics") : t("Load Metrics")}
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true">
                   <path
@@ -415,15 +417,15 @@ export default function AdminConsoleStudentsWorkspace() {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span>{studentListLoading ? "Loading Metrics..." : studentListMetricsLoaded ? "Refresh Metrics" : "Load Metrics"}</span>
+                <span>{studentListLoading ? t("Loading Metrics...") : studentListMetricsLoaded ? t("Refresh Metrics") : t("Load Metrics")}</span>
               </button>
               <button
                 className="btn student-list-primary-btn"
                 type="button"
                 onClick={() => void handleLoadStudentWarnings()}
                 disabled={studentWarningsLoading}
-                aria-label={studentWarningsLoading ? "Loading warnings" : studentWarningsLoaded ? "Refresh warnings" : "Load warnings"}
-                title={studentWarningsLoading ? "Loading warnings..." : studentWarningsLoaded ? "Refresh warnings" : "Load warnings"}
+                aria-label={studentWarningsLoading ? t("Loading Warnings...") : studentWarningsLoaded ? t("Refresh Warnings") : t("Load Warnings")}
+                title={studentWarningsLoading ? t("Loading Warnings...") : studentWarningsLoaded ? t("Refresh Warnings") : t("Load Warnings")}
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true">
                   <path
@@ -442,7 +444,7 @@ export default function AdminConsoleStudentsWorkspace() {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span>{studentWarningsLoading ? "Loading Warnings..." : studentWarningsLoaded ? "Refresh Warnings" : "Load Warnings"}</span>
+                <span>{studentWarningsLoading ? t("Loading Warnings...") : studentWarningsLoaded ? t("Refresh Warnings") : t("Load Warnings")}</span>
               </button>
             </div>
           </div>
@@ -451,7 +453,7 @@ export default function AdminConsoleStudentsWorkspace() {
             <div className="attendance-filter-box" style={{ marginTop: 14 }}>
               <div className="admin-form" style={{ marginTop: 0 }}>
                 <div className="field small">
-                  <label className="student-list-filter-label">Filter<br />(Attendance Rate ≤)</label>
+                  <label className="student-list-filter-label">{t("Filter (Attendance Rate ≤)")}</label>
                   <input
                     type="number"
                     min="0"
@@ -462,7 +464,7 @@ export default function AdminConsoleStudentsWorkspace() {
                   />
                 </div>
                 <div className="field small">
-                  <label className="student-list-filter-label">Filter<br />(Unexcused ≥)</label>
+                  <label className="student-list-filter-label">{t("Filter (Unexcused ≥)")}</label>
                   <input
                     type="number"
                     min="0"
@@ -472,7 +474,7 @@ export default function AdminConsoleStudentsWorkspace() {
                   />
                 </div>
                 <div className="field small">
-                  <label className="student-list-filter-label">Filter<br />(Model Avg Rate ≥)</label>
+                  <label className="student-list-filter-label">{t("Filter (Model Avg Rate ≥)")}</label>
                   <input
                     type="number"
                     min="0"
@@ -483,7 +485,7 @@ export default function AdminConsoleStudentsWorkspace() {
                   />
                 </div>
                 <div className="field small">
-                  <label className="student-list-filter-label">Filter<br />(Daily Avg Rate ≥)</label>
+                  <label className="student-list-filter-label">{t("Filter (Daily Avg Rate ≥)")}</label>
                   <input
                     type="number"
                     min="0"
@@ -494,7 +496,7 @@ export default function AdminConsoleStudentsWorkspace() {
                   />
                 </div>
                 <div className="field small">
-                  <label className="student-list-filter-label">Filter<br />Date From</label>
+                  <label className="student-list-filter-label">{t("Filter Date From")}</label>
                   <input
                     type="date"
                     value={studentListFilters.from}
@@ -502,7 +504,7 @@ export default function AdminConsoleStudentsWorkspace() {
                   />
                 </div>
                 <div className="field small">
-                  <label className="student-list-filter-label">Filter<br />Date To</label>
+                  <label className="student-list-filter-label">{t("Filter Date To")}</label>
                   <input
                     type="date"
                     value={studentListFilters.to}
@@ -516,13 +518,13 @@ export default function AdminConsoleStudentsWorkspace() {
             <table className="admin-table" style={{ minWidth: 960 }}>
               <thead>
                 <tr>
-                  <th>Student<br />No.</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Attendance<br />Rate</th>
-                  <th>Unexcused<br />Absence</th>
-                  <th>Model Avg<br />Rate</th>
-                  <th>Daily Avg<br />Rate</th>
+                  <th>{t("Student No.")}</th>
+                  <th>{t("Name")}</th>
+                  <th>{t("Email")}</th>
+                  <th>{t("Attendance Rate")}</th>
+                  <th>{t("Unexcused Absence")}</th>
+                  <th>{t("Model Avg Rate")}</th>
+                  <th>{t("Daily Avg Rate")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -543,7 +545,7 @@ export default function AdminConsoleStudentsWorkspace() {
                       <td>
                         <div className="student-list-name-cell">
                           {s.is_test_account ? (
-                            <span className="student-test-account-badge" title="Test Account" aria-label="Test Account">
+                            <span className="student-test-account-badge" title={t("Test Account")} aria-label={t("Test Account")}>
                               T
                             </span>
                           ) : null}
@@ -576,21 +578,21 @@ export default function AdminConsoleStudentsWorkspace() {
           </div>
           {!studentListMetricsLoaded && !studentListLoading ? (
             <div className="admin-help" style={{ marginTop: 6 }}>
-              Metrics are not loaded yet. Click <b>Load Metrics</b> to calculate attendance and test averages.
+              {t("Metrics are not loaded yet. Click Load Metrics to calculate attendance and test averages.")}
             </div>
           ) : null}
           {!studentWarningsLoaded && !studentWarningsLoading ? (
             <div className="admin-help" style={{ marginTop: 6 }}>
-              Warnings are not loaded yet. Click <b>Load Warnings</b> to show warning badges and warning history.
+              {t("Warnings are not loaded yet. Click Load Warnings to show warning badges and warning history.")}
             </div>
           ) : null}
-          {studentListLoading ? <AdminLoadingState compact label="Loading metrics..." /> : null}
-          {studentWarningsLoading ? <AdminLoadingState compact label="Loading warnings..." /> : null}
+          {studentListLoading ? <AdminLoadingState compact label={t("Loading metrics...")} /> : null}
+          {studentWarningsLoading ? <AdminLoadingState compact label={t("Loading warnings...")} /> : null}
           <AdminStatusMessage message={studentMsg} />
 
           <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <div className="admin-help">
-              CSV: <b>email,display_name,student_code,temp_password</b>
+              {t("CSV: email,display_name,student_code,temp_password")}
             </div>
             <input
               type="file"
@@ -616,7 +618,7 @@ export default function AdminConsoleStudentsWorkspace() {
                     setSelectedStudentId("");
                     setStudentDetailOpen(false);
                   }}
-                  aria-label="Back"
+                  aria-label={t("Back")}
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 18, height: 18 }}>
                     <path
@@ -636,7 +638,7 @@ export default function AdminConsoleStudentsWorkspace() {
             </div>
             <div className="student-detail-status-badges">
               {selectedStudent?.is_test_account ? (
-                <span className="student-detail-status-pill student-detail-status-pill-test">Test Account</span>
+                <span className="student-detail-status-pill student-detail-status-pill-test">{t("Test Account")}</span>
               ) : null}
               {selectedStudent?.is_withdrawn ? (
                 <span className="student-detail-status-pill student-detail-status-pill-withdrawn">Withdrawn</span>
@@ -647,7 +649,7 @@ export default function AdminConsoleStudentsWorkspace() {
           <div className="student-detail-tab-row">
             <div className="admin-top-tabs student-detail-tabs">
               <button className={`admin-top-tab ${selectedStudentTab === "information" ? "active" : ""}`} onClick={() => setSelectedStudentTab("information")}>
-                Information
+                {t("Information")}
               </button>
               <button
                 className={`admin-top-tab ${selectedStudentTab === "attendance" ? "active" : ""}`}
@@ -656,7 +658,7 @@ export default function AdminConsoleStudentsWorkspace() {
                   fetchStudentAttendance(selectedStudentId);
                 }}
               >
-                Attendance
+                {t("Attendance")}
               </button>
               <button
                 className={`admin-top-tab ${selectedStudentTab === "daily" ? "active" : ""}`}
@@ -665,7 +667,7 @@ export default function AdminConsoleStudentsWorkspace() {
                   fetchStudentAttempts(selectedStudentId);
                 }}
               >
-                Daily Test
+                {t("Daily Test")}
               </button>
               <button
                 className={`admin-top-tab ${selectedStudentTab === "model" ? "active" : ""}`}
@@ -674,13 +676,13 @@ export default function AdminConsoleStudentsWorkspace() {
                   fetchStudentAttempts(selectedStudentId);
                 }}
               >
-                Model Test
+                {t("Model Test")}
               </button>
               <button
                 className={`admin-top-tab ${selectedStudentTab === "actions" ? "active" : ""}`}
                 onClick={() => setSelectedStudentTab("actions")}
               >
-                Actions
+                {t("Actions")}
               </button>
             </div>
           </div>
@@ -689,8 +691,8 @@ export default function AdminConsoleStudentsWorkspace() {
             <div className="student-info-panel" style={{ marginTop: 12 }}>
               <div className="student-info-panel-header">
                 <div>
-                  <div className="admin-title">Personal Information</div>
-                  <div className="admin-subtitle">Shared student profile data visible from both student and admin portals.</div>
+                  <div className="admin-title">{t("Personal Information")}</div>
+                  <div className="admin-subtitle">{t("Shared student profile data visible from both student and admin portals.")}</div>
                 </div>
                 <button
                   className="btn btn-primary"
@@ -702,36 +704,36 @@ export default function AdminConsoleStudentsWorkspace() {
                     setCoreStudentInfoOpen(true);
                   }}
                 >
-                  Edit Information
+                  {t("Edit Information")}
                 </button>
               </div>
-              {studentDetailLoading ? <AdminLoadingState compact label="Loading full student details..." /> : null}
+              {studentDetailLoading ? <AdminLoadingState compact label={t("Loading full student details...")} /> : null}
               <AdminStatusMessage message={studentDetailMsg} />
               <div className="student-info-grid admin-student-info-grid">
                 {[
-                  { label: "Full Name", value: selectedStudent?.display_name || "-" },
-                  { label: "Email", value: selectedStudent?.email || "-" },
-                  { label: "Student No.", value: selectedStudent?.student_code || "-" },
-                  { label: "Phone Number", value: selectedStudent?.phone_number || "-" },
+                  { label: t("Full Name"), value: selectedStudent?.display_name || "-" },
+                  { label: t("Email"), value: selectedStudent?.email || "-" },
+                  { label: t("Student No."), value: selectedStudent?.student_code || "-" },
+                  { label: t("Phone Number"), value: selectedStudent?.phone_number || "-" },
                   {
-                    label: "Date of Birth",
+                    label: t("Date of Birth"),
                     value: selectedStudent?.date_of_birth
                       ? `${formatDateFull(selectedStudent.date_of_birth)}${calculateAge(selectedStudent.date_of_birth) != null ? ` • Age ${calculateAge(selectedStudent.date_of_birth)}` : ""}`
                       : "-"
                   },
-                  { label: "Sex", value: selectedStudent?.sex || "-" },
-                  { label: "Current Working Facility", value: selectedStudent?.current_working_facility || "-" },
-                  { label: "Years of Experience", value: formatYearsOfExperience(selectedStudent?.years_of_experience) || "-" },
-                  { label: "Nursing Certificate", value: selectedStudent?.nursing_certificate || "-" },
-                  { label: "Certificate Status", value: selectedStudent?.nursing_certificate_status || "-" },
-                  { label: "BNMC Registration Number", value: selectedStudent?.bnmc_registration_number || "-" },
+                  { label: t("Sex"), value: selectedStudent?.sex || "-" },
+                  { label: t("Current Working Facility"), value: selectedStudent?.current_working_facility || "-" },
+                  { label: t("Years of Experience"), value: formatYearsOfExperience(selectedStudent?.years_of_experience) || "-" },
+                  { label: t("Nursing Certificate"), value: selectedStudent?.nursing_certificate || "-" },
+                  { label: t("Certificate Status"), value: selectedStudent?.nursing_certificate_status || "-" },
+                  { label: t("BNMC Registration Number"), value: selectedStudent?.bnmc_registration_number || "-" },
                   {
-                    label: "BNMC Registration Expiry Date",
+                    label: t("BNMC Registration Expiry Date"),
                     value: selectedStudent?.bnmc_registration_expiry_date
                       ? formatDateFull(selectedStudent.bnmc_registration_expiry_date)
                       : "-"
                   },
-                  { label: "Passport Number", value: selectedStudent?.passport_number || "-" },
+                  { label: t("Passport Number"), value: selectedStudent?.passport_number || "-" },
                   ...PERSONAL_UPLOAD_FIELDS.map((field) => ({
                     label: field.label,
                     value: renderProfileUpload(getProfileUploads(selectedStudent?.profile_uploads)[field.key], field.label),
@@ -753,10 +755,10 @@ export default function AdminConsoleStudentsWorkspace() {
                 <table className="admin-table" style={{ minWidth: 640 }}>
                   <thead>
                     <tr>
-                      <th>Category</th>
-                      <th>Average Rate</th>
-                      <th>Pass</th>
-                      <th>Fail</th>
+                      <th>{t("Category")}</th>
+                      <th>{t("Average Rate")}</th>
+                      <th>{t("Pass")}</th>
+                      <th>{t("Fail")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -768,7 +770,7 @@ export default function AdminConsoleStudentsWorkspace() {
                         <td>{row.failCount}</td>
                       </tr>
                     )) : (
-                      <tr><td colSpan={4}>No model test records.</td></tr>
+                      <tr><td colSpan={4}>{t("No model test records.")}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -777,12 +779,12 @@ export default function AdminConsoleStudentsWorkspace() {
                 <table className="admin-table" style={{ minWidth: 980 }}>
                   <thead>
                     <tr>
-                      <th>Test</th>
-                      <th>Date</th>
-                      <th>Total Score</th>
-                      <th>Rate</th>
-                      <th>P/F</th>
-                      <th>Class Rank</th>
+                      <th>{t("Test")}</th>
+                      <th>{t("Date")}</th>
+                      <th>{t("Total Score")}</th>
+                      <th>{t("Rate")}</th>
+                      <th>{t("P/F")}</th>
+                      <th>{t("Class Rank")}</th>
                       {sectionTitles.map((title) => (
                         <th key={`sec-${title}`} className="admin-table-compact">
                           {renderTwoLineHeader(title)}
@@ -808,7 +810,7 @@ export default function AdminConsoleStudentsWorkspace() {
                           <td>{formatDateFull(getAttemptDisplayDateValue(a))}</td>
                           <td>{score}</td>
                           <td>{rate}</td>
-                          <td><span className={passed ? "pf-pass" : "pf-fail"}>{passed ? "Pass" : "Fail"}</span></td>
+                          <td><span className={passed ? "pf-pass" : "pf-fail"}>{passed ? t("Pass") : t("Fail")}</span></td>
                           <td>{rankInfo ? `${rankInfo.rank}/${rankInfo.total}` : "-"}</td>
                           {sectionTitles.map((title) => {
                             const s = summary[title];
@@ -834,10 +836,10 @@ export default function AdminConsoleStudentsWorkspace() {
                 <table className="admin-table" style={{ minWidth: 640 }}>
                   <thead>
                     <tr>
-                      <th>Category</th>
-                      <th>Average Rate</th>
-                      <th>Pass</th>
-                      <th>Fail</th>
+                      <th>{t("Category")}</th>
+                      <th>{t("Average Rate")}</th>
+                      <th>{t("Pass")}</th>
+                      <th>{t("Fail")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -849,7 +851,7 @@ export default function AdminConsoleStudentsWorkspace() {
                         <td>{row.failCount}</td>
                       </tr>
                     )) : (
-                      <tr><td colSpan={4}>No daily test records.</td></tr>
+                      <tr><td colSpan={4}>{t("No daily test records.")}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -861,11 +863,11 @@ export default function AdminConsoleStudentsWorkspace() {
                     <table className="admin-table" style={{ minWidth: 820 }}>
                       <thead>
                         <tr>
-                          <th>Test</th>
-                          <th>Date</th>
-                          <th>Score</th>
-                          <th>Rate</th>
-                          <th>P/F</th>
+                          <th>{t("Test")}</th>
+                          <th>{t("Date")}</th>
+                          <th>{t("Score")}</th>
+                          <th>{t("Rate")}</th>
+                          <th>{t("P/F")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -884,7 +886,7 @@ export default function AdminConsoleStudentsWorkspace() {
                           <td>{formatDateFull(getAttemptDisplayDateValue(a))}</td>
                           <td>{score}</td>
                           <td>{rate}</td>
-                              <td><span className={passed ? "pf-pass" : "pf-fail"}>{passed ? "Pass" : "Fail"}</span></td>
+                              <td><span className={passed ? "pf-pass" : "pf-fail"}>{passed ? t("Pass") : t("Fail")}</span></td>
                             </tr>
                           );
                         })}
@@ -951,7 +953,7 @@ export default function AdminConsoleStudentsWorkspace() {
                         </div>
                         <div className="student-attendance-pie-center">
                           <div className="student-attendance-rate">{studentAttendancePie.rateValue.toFixed(1)}%</div>
-                          <div className="student-attendance-rate-label">Attendance Rate</div>
+                          <div className="student-attendance-rate-label">{t("Attendance Rate")}</div>
                         </div>
                       </div>
                     </div>
@@ -962,7 +964,7 @@ export default function AdminConsoleStudentsWorkspace() {
                       <thead>
                         <tr>
                           <th></th>
-                          <th>Overall</th>
+                          <th>{t("Overall")}</th>
                           {attendanceSummary.months.map((m) => (
                             <th key={m.key}>{m.label}</th>
                           ))}
@@ -970,42 +972,42 @@ export default function AdminConsoleStudentsWorkspace() {
                       </thead>
                       <tbody>
                         <tr>
-                          <td>Attendance %</td>
-                          <td>{attendanceSummary.overall.rate == null ? "N/A" : `${attendanceSummary.overall.rate.toFixed(2)}%`}</td>
+                          <td>{t("Attendance %")}</td>
+                          <td>{attendanceSummary.overall.rate == null ? t("N/A") : `${attendanceSummary.overall.rate.toFixed(2)}%`}</td>
                           {attendanceSummary.months.map((m) => (
-                            <td key={`${m.key}-rate`}>{m.stats.rate == null ? "N/A" : `${m.stats.rate.toFixed(2)}%`}</td>
+                            <td key={`${m.key}-rate`}>{m.stats.rate == null ? t("N/A") : `${m.stats.rate.toFixed(2)}%`}</td>
                           ))}
                         </tr>
                         <tr>
-                          <td>Total Days</td>
+                          <td>{t("Total Days")}</td>
                           <td>{attendanceSummary.overall.total || "-"}</td>
                           {attendanceSummary.months.map((m) => (
                             <td key={`${m.key}-total`}>{m.stats.total || "-"}</td>
                           ))}
                         </tr>
                         <tr>
-                          <td>Present (P)</td>
+                          <td>{t("Present (P)")}</td>
                           <td>{attendanceSummary.overall.present || "-"}</td>
                           {attendanceSummary.months.map((m) => (
                             <td key={`${m.key}-present`}>{m.stats.present || "-"}</td>
                           ))}
                         </tr>
                         <tr>
-                          <td>Late/Left Early (L)</td>
+                          <td>{t("Late/Left Early (L)")}</td>
                           <td>{attendanceSummary.overall.late || "-"}</td>
                           {attendanceSummary.months.map((m) => (
                             <td key={`${m.key}-late`}>{m.stats.late || "-"}</td>
                           ))}
                         </tr>
                         <tr>
-                          <td>Excused Absence (E)</td>
+                          <td>{t("Excused Absence (E)")}</td>
                           <td>{attendanceSummary.overall.excused || "-"}</td>
                           {attendanceSummary.months.map((m) => (
                             <td key={`${m.key}-excused`}>{m.stats.excused || "-"}</td>
                           ))}
                         </tr>
                         <tr>
-                          <td>Unexcused Absence (A)</td>
+                          <td>{t("Unexcused Absence (A)")}</td>
                           <td>{attendanceSummary.overall.unexcused || "-"}</td>
                           {attendanceSummary.months.map((m) => (
                             <td key={`${m.key}-unexcused`}>{m.stats.unexcused || "-"}</td>
@@ -1019,17 +1021,17 @@ export default function AdminConsoleStudentsWorkspace() {
 
               <div className="admin-form" style={{ marginTop: 10 }}>
                 <div className="field small">
-                  <label>From</label>
+                  <label>{t("From")}</label>
                   <input type="date" value={studentAttendanceRange.from} onChange={(e) => setStudentAttendanceRange((s) => ({ ...s, from: e.target.value }))} />
                 </div>
                 <div className="field small">
-                  <label>To</label>
+                  <label>{t("To")}</label>
                   <input type="date" value={studentAttendanceRange.to} onChange={(e) => setStudentAttendanceRange((s) => ({ ...s, to: e.target.value }))} />
                 </div>
                 <div className="field small">
                   <label>&nbsp;</label>
                   <button className="btn" type="button" onClick={() => setStudentAttendanceRange({ from: "", to: "" })}>
-                    Clear
+                    {t("Clear")}
                   </button>
                 </div>
               </div>
@@ -1038,9 +1040,9 @@ export default function AdminConsoleStudentsWorkspace() {
                 <table className="admin-table" style={{ minWidth: 760 }}>
                   <thead>
                     <tr>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th>Comment</th>
+                      <th>{t("Date")}</th>
+                      <th>{t("Status")}</th>
+                      <th>{t("Comment")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1063,8 +1065,8 @@ export default function AdminConsoleStudentsWorkspace() {
               <div className="student-actions-list">
                 <div className="student-actions-row">
                   <div>
-                    <div className="student-actions-title">Export PDF</div>
-                    <div className="student-actions-help">Download the student report with profile, attendance, and test data.</div>
+                    <div className="student-actions-title">{t("Export PDF")}</div>
+                    <div className="student-actions-help">{t("Download the student report with profile, attendance, and test data.")}</div>
                   </div>
                   <button
                     className="btn student-detail-action-btn"
@@ -1074,14 +1076,14 @@ export default function AdminConsoleStudentsWorkspace() {
                     <svg viewBox="0 0 20 20" aria-hidden="true">
                       <path d="M10 3v8m0 0 3-3m-3 3-3-3M4 13.5v1.25C4 15.44 4.56 16 5.25 16h9.5c.69 0 1.25-.56 1.25-1.25V13.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    {studentReportExporting ? "Exporting..." : "Export PDF"}
+                    {studentReportExporting ? t("Exporting...") : t("Export PDF")}
                   </button>
                 </div>
 
                 <div className="student-actions-row">
                   <div>
-                    <div className="student-actions-title">Reissue Temp Pass</div>
-                    <div className="student-actions-help">Generate a new temporary password for this student.</div>
+                    <div className="student-actions-title">{t("Reissue Temp Pass")}</div>
+                    <div className="student-actions-help">{t("Generate a new temporary password for this student.")}</div>
                   </div>
                   <button
                     className="btn student-detail-action-btn"
@@ -1095,18 +1097,18 @@ export default function AdminConsoleStudentsWorkspace() {
                       setReissueOpen(true);
                     }}
                   >
-                    Reissue Temp Pass
+                    {t("Reissue Temp Pass")}
                   </button>
                 </div>
 
                 <div className="student-actions-row">
                   <div>
-                    <div className="student-actions-title">Test Account</div>
-                    <div className="student-actions-help">Exclude this student from live analytics and treat the account as a test profile.</div>
+                    <div className="student-actions-title">{t("Test Account")}</div>
+                    <div className="student-actions-help">{t("Exclude this student from live analytics and treat the account as a test profile.")}</div>
                   </div>
                   <div className="student-actions-switch-row">
-                    <span className="student-detail-toggle-label">{selectedStudent?.is_test_account ? "On" : "Off"}</span>
-                    <label className="daily-session-create-switch" aria-label="Test Account">
+                    <span className="student-detail-toggle-label">{selectedStudent?.is_test_account ? t("On") : t("Off")}</span>
+                    <label className="daily-session-create-switch" aria-label={t("Test Account")}>
                       <input
                         type="checkbox"
                         checked={Boolean(selectedStudent?.is_test_account)}
@@ -1122,9 +1124,9 @@ export default function AdminConsoleStudentsWorkspace() {
 
                 <div className="student-actions-row student-actions-row-withdrawal">
                   <div>
-                    <div className="student-actions-title">Withdrawal</div>
+                    <div className="student-actions-title">{t("Withdrawal")}</div>
                     <div className="student-actions-help">
-                      Exclude the student from attendance totals after the selected withdrawal date.
+                      {t("Exclude the student from attendance totals after the selected withdrawal date.")}
                     </div>
                   </div>
                   <div className="student-actions-withdrawal-controls">
@@ -1133,10 +1135,10 @@ export default function AdminConsoleStudentsWorkspace() {
                         {withdrawalSaving ? (
                           <>
                             <span className="attendance-import-status-spinner admin-loading-spinner student-actions-saving-indicator" aria-hidden="true" />
-                            <span>Saving...</span>
+                            <span>{t("Saving...")}</span>
                           </>
                         ) : (
-                          <span>{selectedStudent?.is_withdrawn ? "On" : "Off"}</span>
+                          <span>{selectedStudent?.is_withdrawn ? t("On") : t("Off")}</span>
                         )}
                       </span>
                       <label className="daily-session-create-switch" aria-label="Withdrawn">
@@ -1152,7 +1154,7 @@ export default function AdminConsoleStudentsWorkspace() {
                       </label>
                     </div>
                     <div className="student-actions-date-field">
-                      <span className="student-actions-date-label">Withdrawal Date</span>
+                      <span className="student-actions-date-label">{t("Withdrawal Date")}</span>
                       <div className="student-actions-date-input-row">
                         <input
                           type="date"
@@ -1201,7 +1203,7 @@ export default function AdminConsoleStudentsWorkspace() {
                     deleteStudent(selectedStudent.id, selectedStudent.email);
                   }}
                 >
-                  Delete Student
+                  {t("Delete Student")}
                 </button>
               </div>
             </div>
@@ -1213,14 +1215,14 @@ export default function AdminConsoleStudentsWorkspace() {
         <div className="admin-modal-overlay" onClick={() => setStudentWarningIssueOpen(false)}>
           <div className="admin-modal invite-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <div className="student-warning-modal-title">Create Warning</div>
+              <div className="student-warning-modal-title">{t("Create Warning")}</div>
               <button className="admin-modal-close" onClick={() => setStudentWarningIssueOpen(false)} aria-label="Close">
                 &times;
               </button>
             </div>
             <div className="student-warning-history" style={{ marginTop: 10 }}>
-              <div className="student-warning-history-title">Issued Warnings</div>
-              {studentWarningsLoading ? <AdminLoadingState compact label="Loading warnings..." /> : null}
+              <div className="student-warning-history-title">{t("Issued Warnings")}</div>
+              {studentWarningsLoading ? <AdminLoadingState compact label={t("Loading warnings...")} /> : null}
               <div className="student-warning-history-list">
                 {studentWarnings.map((warning) => {
                   const summary = summarizeWarningCriteria(warning.criteria);
@@ -1237,19 +1239,19 @@ export default function AdminConsoleStudentsWorkspace() {
                   );
                 })}
                 {!studentWarningsLoading && !studentWarnings.length ? (
-                  <div className="admin-help">No warnings issued yet.</div>
+                  <div className="admin-help">{t("No warnings issued yet.")}</div>
                 ) : null}
               </div>
               <AdminStatusMessage message={studentWarningsMsg} />
             </div>
             <div className="admin-form student-warning-form" style={{ marginTop: 10 }}>
               <div className="field student-warning-form-title">
-                <label>Title (optional)</label>
-                <input value={studentWarningForm.title} onChange={(e) => setStudentWarningForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Warning title" />
+                <label>{t("Title (optional)")}</label>
+                <input value={studentWarningForm.title} onChange={(e) => setStudentWarningForm((prev) => ({ ...prev, title: e.target.value }))} placeholder={t("Warning title")} />
               </div>
               <div className="student-warning-period-row">
                 <div className="field">
-                  <label>Period</label>
+                  <label>{t("Period")}</label>
                   <select
                     value={studentWarningForm.period ?? "all"}
                     onChange={(e) => setStudentWarningForm((prev) => ({
@@ -1259,15 +1261,15 @@ export default function AdminConsoleStudentsWorkspace() {
                       to: e.target.value === "specified" ? prev.to : "",
                     }))}
                   >
-                    <option value="all">All period</option>
-                    <option value="specified">Specify Dates</option>
+                    <option value="all">{t("All period")}</option>
+                    <option value="specified">{t("Specify Dates")}</option>
                   </select>
                   <div className="admin-help student-warning-period-hint">
-                    Choose <b>Specify Dates</b> to enable the date range.
+                    {t("Choose Specify Dates to enable the date range.")}
                   </div>
                 </div>
                 <div className={`field student-warning-date-range-field${studentWarningForm.period !== "specified" ? " is-disabled" : ""}`}>
-                  <label>Date Range</label>
+                  <label>{t("Date Range")}</label>
                   <div className="student-warning-period-dates">
                     <input
                       type="date"
@@ -1284,40 +1286,40 @@ export default function AdminConsoleStudentsWorkspace() {
                   </div>
                   <div className="admin-help student-warning-period-hint">
                     {studentWarningForm.period === "specified"
-                      ? "Select the start and end dates for this warning."
-                      : "Date range is disabled until Specify Dates is selected."}
+                      ? t("Select the start and end dates for this warning.")
+                      : t("Date range is disabled until Specify Dates is selected.")}
                   </div>
                 </div>
               </div>
               <div className="student-warning-criteria-grid">
                 <div className="field">
-                  <label>Attendance Rate (%) (≤)</label>
+                  <label>{t("Attendance Rate (%) (≤)")}</label>
                   <input type="number" min="0" max="100" value={studentWarningForm.maxAttendance} onChange={(e) => setStudentWarningForm((prev) => ({ ...prev, maxAttendance: e.target.value }))} />
                 </div>
                 <div className="field">
-                  <label>Unexcused Absences (≥)</label>
+                  <label>{t("Unexcused Absences (≥)")}</label>
                   <input type="number" min="0" value={studentWarningForm.minUnexcused} onChange={(e) => setStudentWarningForm((prev) => ({ ...prev, minUnexcused: e.target.value }))} />
                 </div>
                 <div className="field">
-                  <label>Model Test Average (%) (≤)</label>
+                  <label>{t("Model Test Average (%) (≤)")}</label>
                   <input type="number" min="0" max="100" value={studentWarningForm.maxModelAvg} onChange={(e) => setStudentWarningForm((prev) => ({ ...prev, maxModelAvg: e.target.value }))} />
                 </div>
                 <div className="field">
-                  <label>Daily Test Average (%) (≤)</label>
+                  <label>{t("Daily Test Average (%) (≤)")}</label>
                   <input type="number" min="0" max="100" value={studentWarningForm.maxDailyAvg} onChange={(e) => setStudentWarningForm((prev) => ({ ...prev, maxDailyAvg: e.target.value }))} />
                 </div>
               </div>
             </div>
             <div className="admin-help" style={{ marginTop: 10 }}>
-              Students are included if they match any selected warning threshold.
+              {t("Students are included if they match any selected warning threshold.")}
             </div>
             <AdminStatusMessage message={studentWarningIssueMsg} />
             <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button className="btn btn-primary" onClick={issueStudentWarningCtx} disabled={studentWarningIssueSaving}>
-                {studentWarningIssueSaving ? "Issuing..." : "Issue Warning"}
+                {studentWarningIssueSaving ? t("Issuing...") : t("Issue Warning")}
               </button>
               <button className="btn" onClick={() => setStudentWarningForm(getDefaultStudentWarningForm())}>
-                Reset
+                {t("Reset")}
               </button>
             </div>
           </div>
@@ -1348,10 +1350,10 @@ export default function AdminConsoleStudentsWorkspace() {
               <table className="admin-table" style={{ minWidth: 760 }}>
                 <thead>
                   <tr>
-                    <th>Student<br />No.</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Issues</th>
+                    <th>{t("Student No.")}</th>
+                    <th>{t("Name")}</th>
+                    <th>{t("Email")}</th>
+                    <th>{t("Issues")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1367,7 +1369,7 @@ export default function AdminConsoleStudentsWorkspace() {
                     );
                   })}
                   {!(selectedStudentWarning.recipients ?? []).length ? (
-                    <tr><td colSpan={4}>No recipients found.</td></tr>
+                    <tr><td colSpan={4}>{t("No recipients found.")}</td></tr>
                   ) : null}
                 </tbody>
               </table>
@@ -1378,7 +1380,7 @@ export default function AdminConsoleStudentsWorkspace() {
                 onClick={() => deleteStudentWarningCtx(selectedStudentWarning)}
                 disabled={studentWarningDeletingId === selectedStudentWarning.id}
               >
-                {studentWarningDeletingId === selectedStudentWarning.id ? "Deleting..." : "Delete Warning"}
+                {studentWarningDeletingId === selectedStudentWarning.id ? t("Deleting...") : t("Delete Warning")}
               </button>
             </div>
           </div>
@@ -1390,7 +1392,7 @@ export default function AdminConsoleStudentsWorkspace() {
           <div className="admin-modal invite-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <div>
-                <div className="student-warning-modal-title">Applied Warnings</div>
+                <div className="student-warning-modal-title">{t("Applied Warnings")}</div>
                 <div className="admin-help" style={{ marginTop: 6 }}>
                   {studentWarningPreviewStudent?.display_name || studentWarningPreviewStudent?.email || studentWarningPreviewStudentId}
                 </div>
@@ -1421,7 +1423,7 @@ export default function AdminConsoleStudentsWorkspace() {
                 );
               })}
               {!studentWarningPreviewEntries.length ? (
-                <div className="admin-help">No warnings found for this student.</div>
+                <div className="admin-help">{t("No warnings found for this student.")}</div>
               ) : null}
             </div>
           </div>

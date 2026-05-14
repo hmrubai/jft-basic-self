@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSuperAdmin } from "./super/SuperAdminShell";
+import { useLanguage } from "../lib/i18n";
 import { preloadAdminConsole } from "./adminConsoleLoader";
 import AdminLoadingState from "./AdminLoadingState";
 
@@ -121,6 +122,7 @@ function computeSummary(schoolId, metrics) {
 }
 
 export default function SuperSchoolsPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const { supabase, invokeWithAuth } = useSuperAdmin();
   const [schools, setSchools] = useState([]);
@@ -468,20 +470,20 @@ export default function SuperSchoolsPage() {
       <section className="super-flat-section super-search-section">
         <div className="super-schools-filter-grid">
           <div className="field">
-            <label>Search</label>
+            <label>{t("Search")}</label>
             <input
               type="search"
-              placeholder="Search by school name"
+              placeholder={t("Search by school name")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <div className="field small">
-            <label>Status</label>
+            <label>{t("Status")}</label>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">{t("All")}</option>
+              <option value="active">{t("Active")}</option>
+              <option value="inactive">{t("Inactive")}</option>
             </select>
           </div>
         </div>
@@ -490,15 +492,15 @@ export default function SuperSchoolsPage() {
 
       <section className="super-flat-section super-schools-list-section">
         <div className="super-schools-list-head">
-          <div className="super-section-title">Schools List</div>
-          {metricsLoading ? <AdminLoadingState compact label="Loading school metrics..." /> : null}
+          <div className="super-section-title">{t("Schools List")}</div>
+          {metricsLoading ? <AdminLoadingState compact label={t("Loading school metrics...")} /> : null}
           <button className="btn btn-primary super-create-school-btn" onClick={openCreateModal}>
             <span className="super-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24">
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </span>
-            Add New School
+            {t("Add New School")}
           </button>
         </div>
 
@@ -506,16 +508,16 @@ export default function SuperSchoolsPage() {
           <table className="admin-table super-schools-table" style={{ minWidth: 1200 }}>
             <thead>
               <tr>
-                <th>Enter</th>
-                <th>School Name</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th style={{ width: 92 }}>Student<br />No.</th>
-                <th>Attendance</th>
-                <th>Model<br />Test Avg.</th>
-                <th>Daily<br />Test Avg.</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t("Enter")}</th>
+                <th>{t("School Name")}</th>
+                <th>{t("Start Date")}</th>
+                <th>{t("End Date")}</th>
+                <th style={{ width: 92 }}>{t("Student No.")}</th>
+                <th>{t("Attendance")}</th>
+                <th>{t("Model Test Avg.")}</th>
+                <th>{t("Daily Test Avg.")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -565,7 +567,7 @@ export default function SuperSchoolsPage() {
                               <path d="M4 20a8 8 0 0 1 16 0Z" fill="currentColor" stroke="none" />
                             </svg>
                           </span>
-                          Admin List
+                          {t("Admin List")}
                         </Link>
                         <button className="btn super-inline-btn" onClick={() => openEditModal(school)}>
                           <span className="super-btn-icon" aria-hidden="true">
@@ -574,7 +576,7 @@ export default function SuperSchoolsPage() {
                               <path d="m12.5 7.5 4 4" />
                             </svg>
                           </span>
-                          Edit
+                          {t("Edit")}
                         </button>
                       </div>
                     </td>
@@ -583,7 +585,7 @@ export default function SuperSchoolsPage() {
               })}
               {!loading && filteredSchools.length === 0 ? (
                 <tr>
-                  <td colSpan={10}>No schools found.</td>
+                  <td colSpan={10}>{t("No schools found.")}</td>
                 </tr>
               ) : null}
             </tbody>
@@ -595,8 +597,8 @@ export default function SuperSchoolsPage() {
         <div className="admin-modal-overlay" onClick={closeModal}>
           <div className="admin-modal super-school-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header super-school-modal-header">
-              <div className="admin-title">{form.id ? "Edit School" : "Create School"}</div>
-              <button className="admin-modal-close super-school-modal-close" onClick={closeModal} aria-label="Close">
+              <div className="admin-title">{form.id ? t("Edit School") : t("Create School")}</div>
+              <button className="admin-modal-close super-school-modal-close" onClick={closeModal} aria-label={t("Close")}>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M6 6l12 12M18 6 6 18" />
                 </svg>
@@ -604,7 +606,7 @@ export default function SuperSchoolsPage() {
             </div>
             <div className="super-school-modal-body">
               <div className="super-school-modal-field">
-                <label>School Name</label>
+                <label>{t("School Name")}</label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
@@ -613,7 +615,7 @@ export default function SuperSchoolsPage() {
 
               <div className="super-school-modal-grid">
                 <div className="super-school-modal-field">
-                  <label>Start Date</label>
+                  <label>{t("Start Date")}</label>
                   <input
                     type="date"
                     value={form.start_date}
@@ -621,7 +623,7 @@ export default function SuperSchoolsPage() {
                   />
                 </div>
                 <div className="super-school-modal-field">
-                  <label>End Date</label>
+                  <label>{t("End Date")}</label>
                   <input
                     type="date"
                     value={form.end_date}
@@ -632,7 +634,7 @@ export default function SuperSchoolsPage() {
 
               {!form.id ? (
                 <div className="super-school-modal-field">
-                  <label>Add Students</label>
+                  <label>{t("Add Students")}</label>
                   <div className="super-school-upload-row">
                     <label className="super-school-upload-trigger">
                       <input
@@ -642,7 +644,7 @@ export default function SuperSchoolsPage() {
                         accept=".csv,text/csv"
                         onChange={(event) => setStudentCsvFile(event.target.files?.[0] ?? null)}
                       />
-                      <span>{studentCsvFile ? "Replace csv file" : "Select csv file"}</span>
+                      <span>{studentCsvFile ? t("Replace csv file") : t("Select csv file")}</span>
                     </label>
                     {studentCsvFile ? <div className="super-school-upload-name">{studentCsvFile.name}</div> : null}
                   </div>
@@ -653,14 +655,14 @@ export default function SuperSchoolsPage() {
               ) : null}
 
               <div className="super-school-modal-field super-school-status-field">
-                <label>Status</label>
+                <label>{t("Status")}</label>
                 <div className={`super-school-status-wrap ${form.status === "inactive" ? "inactive" : "active"}`}>
                   <select
                     value={form.status}
                     onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
                   >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="active">{t("Active")}</option>
+                    <option value="inactive">{t("Inactive")}</option>
                   </select>
                 </div>
               </div>
@@ -673,16 +675,16 @@ export default function SuperSchoolsPage() {
                       disabled={saving || deleting}
                       onClick={() => setDeleteConfirmOpen((value) => !value)}
                     >
-                      Delete School
+                      {t("Delete School")}
                     </button>
                     <button className="btn btn-primary super-school-action-btn super-school-submit" disabled={saving || deleting} onClick={saveSchool}>
-                      {saving ? "Saving..." : "Save School"}
+                      {saving ? t("Saving...") : t("Save School")}
                     </button>
                   </div>
 
                   {deleteConfirmOpen ? (
                     <div className="super-school-delete-panel">
-                      <label>Type DELETE to permanently delete this school and its records</label>
+                      <label>{t("Type DELETE to permanently delete this school and its records")}</label>
                       <input
                         value={deleteConfirmText}
                         onChange={(e) => setDeleteConfirmText(e.target.value)}
@@ -694,7 +696,7 @@ export default function SuperSchoolsPage() {
                           disabled={deleting || deleteConfirmText !== "DELETE"}
                           onClick={deleteSchool}
                         >
-                          {deleting ? "Deleting..." : "Confirm Delete"}
+                          {deleting ? t("Deleting...") : t("Confirm Delete")}
                         </button>
                         <button
                           className="btn super-school-action-btn super-school-delete-cancel"
@@ -704,7 +706,7 @@ export default function SuperSchoolsPage() {
                             setDeleteConfirmText("");
                           }}
                         >
-                          Cancel
+                          {t("Cancel")}
                         </button>
                       </div>
                     </div>
@@ -714,7 +716,7 @@ export default function SuperSchoolsPage() {
 
               {!form.id ? (
                 <button className="btn btn-primary super-school-submit" disabled={saving || deleting} onClick={saveSchool}>
-                  {saving ? "Saving..." : "Create School"}
+                  {saving ? t("Saving...") : t("Create School")}
                 </button>
               ) : null}
             </div>

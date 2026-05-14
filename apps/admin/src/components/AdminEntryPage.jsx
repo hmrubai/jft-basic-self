@@ -18,6 +18,7 @@ import {
 import AdminConsoleBoundary from "./AdminConsoleBoundary";
 import AdminLoadingState from "./AdminLoadingState";
 import LoadableAdminModule from "./LoadableAdminModule";
+import { useLanguage } from "../lib/i18n";
 
 function PasswordVisibilityIcon({ visible }) {
   return visible ? (
@@ -61,6 +62,7 @@ function waitForRetry(delayMs) {
 
 export default function AdminEntryPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const supabaseConfigError = getAdminSupabaseConfigError();
   const supabase = useMemo(() => (supabaseConfigError ? null : createAdminSupabaseClient()), [supabaseConfigError]);
   const [session, setSession] = useState(null);
@@ -177,7 +179,7 @@ export default function AdminEntryPage() {
           if (!mounted) return null;
           setSession(null);
           setProfile(null);
-          setLoginMsg("Invalid login credentials");
+          setLoginMsg(t("Invalid login credentials"));
           return null;
         }
 
@@ -416,7 +418,7 @@ export default function AdminEntryPage() {
         syncAdminAuthCookie(null);
         setSession(null);
         setProfile(null);
-        setLoginMsg("Invalid login credentials");
+        setLoginMsg(t("Invalid login credentials"));
         return;
       }
 
@@ -437,7 +439,7 @@ export default function AdminEntryPage() {
         syncAdminAuthCookie(null);
         setSession(null);
         setProfile(null);
-        setLoginMsg("Invalid login credentials");
+        setLoginMsg(t("Invalid login credentials"));
         return;
       }
 
@@ -478,7 +480,7 @@ export default function AdminEntryPage() {
       syncAdminAuthCookie(null);
       setSession(null);
       setProfile(null);
-      setLoginMsg(caughtError instanceof Error ? caughtError.message : "Login failed.");
+      setLoginMsg(caughtError instanceof Error ? caughtError.message : t("Login failed."));
     } finally {
       loginValidationInFlightRef.current = false;
     }
@@ -490,15 +492,15 @@ export default function AdminEntryPage() {
     const nextPassword = passwordChangeForm.password;
     const confirmPassword = passwordChangeForm.confirmPassword;
     if (!nextPassword || !confirmPassword) {
-      setPasswordChangeMsg("Enter and confirm the new password.");
+      setPasswordChangeMsg(t("Enter and confirm the new password."));
       return;
     }
     if (nextPassword !== confirmPassword) {
-      setPasswordChangeMsg("Passwords do not match.");
+      setPasswordChangeMsg(t("Passwords do not match."));
       return;
     }
     if (nextPassword.length < 8) {
-      setPasswordChangeMsg("Password must be at least 8 characters.");
+      setPasswordChangeMsg(t("Password must be at least 8 characters."));
       return;
     }
 
@@ -531,7 +533,7 @@ export default function AdminEntryPage() {
 
   if (!authReady) {
     return (
-      <AdminLoadingState centered label="Loading..." />
+      <AdminLoadingState centered label={t("Loading...")} />
     );
   }
 
@@ -541,7 +543,7 @@ export default function AdminEntryPage() {
         <div className="admin-login admin-login-card">
           <div className="admin-login-header">
             <img className="admin-login-logo" src="/branding/jft-navi-color.png" alt="JFT Navi" />
-            <h1 className="admin-login-title">Admin Panel Login</h1>
+            <h1 className="admin-login-title">{t("Admin Panel Login")}</h1>
           </div>
           <div className="admin-login-divider" />
           <form
@@ -551,37 +553,37 @@ export default function AdminEntryPage() {
               void handleLogin();
             }}
           >
-            <label className="admin-login-label" htmlFor="adminLoginEmail">Username</label>
+            <label className="admin-login-label" htmlFor="adminLoginEmail">{t("Username")}</label>
             <input
               id="adminLoginEmail"
               className="admin-login-input"
               type="email"
               autoComplete="username"
-              placeholder="example@gmail.com"
+              placeholder={t("example@gmail.com")}
               value={loginForm.email}
               onChange={(event) => setLoginForm((current) => ({ ...current, email: event.target.value }))}
             />
-            <label className="admin-login-label" htmlFor="adminLoginPassword">Password</label>
+            <label className="admin-login-label" htmlFor="adminLoginPassword">{t("Password")}</label>
             <div className="admin-login-password">
               <input
                 id="adminLoginPassword"
                 className="admin-login-input admin-login-input-password"
                 type={showLoginPassword ? "text" : "password"}
                 autoComplete="current-password"
-                placeholder="password"
+                placeholder={t("password")}
                 value={loginForm.password}
                 onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
               />
               <button
                 className="admin-login-toggle"
                 type="button"
-                aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                aria-label={showLoginPassword ? t("Hide password") : t("Show password")}
                 onClick={() => setShowLoginPassword((current) => !current)}
               >
                 <PasswordVisibilityIcon visible={showLoginPassword} />
               </button>
             </div>
-            <button className="admin-login-submit" type="submit">LOGIN</button>
+            <button className="admin-login-submit" type="submit">{t("LOGIN")}</button>
           </form>
           <div className={`admin-login-msg ${loginMsg ? "visible" : ""}`}>{loginMsg || "\u00a0"}</div>
         </div>
@@ -591,21 +593,21 @@ export default function AdminEntryPage() {
 
   if (profileLoading) {
     return (
-      <AdminLoadingState centered label="Loading..." />
+      <AdminLoadingState centered label={t("Loading...")} />
     );
   }
 
   if (!profile) {
     const unresolvedProfile = Boolean(session) && !loginMsg;
     if (!loginMsg && !unresolvedProfile) {
-      return <AdminLoadingState centered label="Loading..." />;
+      return <AdminLoadingState centered label={t("Loading...")} />;
     }
     return (
       <div className="admin-login">
-        <h2>Startup Error</h2>
+        <h2>{t("Startup Error")}</h2>
         {(loginMsg || unresolvedProfile) ? (
           <div className="admin-msg">
-            {loginMsg || "The admin session was restored, but the admin profile could not be loaded. Sign out and try again."}
+            {loginMsg || t("The admin session was restored, but the admin profile could not be loaded. Sign out and try again.")}
           </div>
         ) : null}
         {(loginMsg || unresolvedProfile) ? (
@@ -616,7 +618,7 @@ export default function AdminEntryPage() {
               void handleStartupRecovery();
             }}
           >
-            SIGN OUT AND RETRY
+            {t("SIGN OUT AND RETRY")}
           </button>
         ) : null}
       </div>
@@ -628,11 +630,11 @@ export default function AdminEntryPage() {
       <div className="admin-login-screen">
         <div className="admin-login admin-login-card admin-password-card">
           <div className="admin-password-change-head">
-            <h2 className="admin-password-change-title">Set New Password</h2>
+            <h2 className="admin-password-change-title">{t("Set New Password")}</h2>
             <p className="admin-password-change-copy">
-              This account must set a new password before continuing.
+              {t("This account must set a new password before continuing.")}
             </p>
-            <p className="admin-password-change-note">Use at least 8 characters for your new password.</p>
+            <p className="admin-password-change-note">{t("Use at least 8 characters for your new password.")}</p>
           </div>
           <form
             className="admin-login-form"
@@ -641,42 +643,42 @@ export default function AdminEntryPage() {
               void handlePasswordChange();
             }}
           >
-            <label className="admin-login-label" htmlFor="adminPasswordChangeNew">New Password</label>
+            <label className="admin-login-label" htmlFor="adminPasswordChangeNew">{t("New Password")}</label>
             <div className="admin-login-password">
               <input
                 id="adminPasswordChangeNew"
                 className="admin-login-input admin-login-input-password"
                 type={showPasswordChangePassword ? "text" : "password"}
                 autoComplete="new-password"
-                placeholder="new password"
+                placeholder={t("new password")}
                 value={passwordChangeForm.password}
                 onChange={(event) => setPasswordChangeForm((current) => ({ ...current, password: event.target.value }))}
               />
               <button
                 className="admin-login-toggle"
                 type="button"
-                aria-label={showPasswordChangePassword ? "Hide password" : "Show password"}
+                aria-label={showPasswordChangePassword ? t("Hide password") : t("Show password")}
                 onClick={() => setShowPasswordChangePassword((current) => !current)}
               >
                 <PasswordVisibilityIcon visible={showPasswordChangePassword} />
               </button>
             </div>
 
-            <label className="admin-login-label" htmlFor="adminPasswordChangeConfirm">Confirm Password</label>
+            <label className="admin-login-label" htmlFor="adminPasswordChangeConfirm">{t("Confirm Password")}</label>
             <div className="admin-login-password">
               <input
                 id="adminPasswordChangeConfirm"
                 className="admin-login-input admin-login-input-password"
                 type={showPasswordChangeConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
-                placeholder="confirm password"
+                placeholder={t("confirm password")}
                 value={passwordChangeForm.confirmPassword}
                 onChange={(event) => setPasswordChangeForm((current) => ({ ...current, confirmPassword: event.target.value }))}
               />
               <button
                 className="admin-login-toggle"
                 type="button"
-                aria-label={showPasswordChangeConfirmPassword ? "Hide password" : "Show password"}
+                aria-label={showPasswordChangeConfirmPassword ? t("Hide password") : t("Show password")}
                 onClick={() => setShowPasswordChangeConfirmPassword((current) => !current)}
               >
                 <PasswordVisibilityIcon visible={showPasswordChangeConfirmPassword} />
@@ -684,14 +686,14 @@ export default function AdminEntryPage() {
             </div>
 
             <button className="admin-login-submit" type="submit" disabled={passwordChangeLoading}>
-              {passwordChangeLoading ? "SAVING..." : "UPDATE PASSWORD"}
+              {passwordChangeLoading ? t("SAVING...") : t("UPDATE PASSWORD")}
             </button>
             <button
               className="admin-password-change-secondary"
               type="button"
               onClick={() => supabase.auth.signOut()}
             >
-              SIGN OUT
+              {t("SIGN OUT")}
             </button>
           </form>
           <div className={`admin-login-msg ${passwordChangeMsg ? "visible" : ""}`}>
@@ -707,7 +709,7 @@ export default function AdminEntryPage() {
     && profile.account_status === "active"
   ) {
     return (
-      <AdminLoadingState centered label="Redirecting..." />
+      <AdminLoadingState centered label={t("Redirecting...")} />
     );
   }
 

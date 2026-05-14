@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSuperAdmin } from "./SuperAdminShell";
+import { useLanguage } from "../../lib/i18n";
 import { getAdminSupabaseConfig } from "../../lib/adminSupabase";
 import { renderUnderlinesHtml } from "../../lib/adminQuestionText";
 import { notifyQuestionSetLibraryUpdated } from "../../lib/questionSetLibraryRefresh";
@@ -641,26 +642,27 @@ function resolveMediaUrl(value) {
 }
 
 function ValidationReport({ validation }) {
+  const { t } = useLanguage();
   if (!validation) return null;
 
   return (
     <div className="super-validation-panel">
       <div className="super-validation-summary">
-        <div className="admin-chip">Sets: {validation.summary?.set_count ?? validation.question_sets?.length ?? 0}</div>
-        <div className="admin-chip">Questions: {validation.summary?.question_count ?? 0}</div>
-        <div className="admin-chip">Asset refs: {validation.summary?.asset_reference_count ?? 0}</div>
-        <div className="admin-chip">{validation.valid ? "Validation passed" : "Validation failed"}</div>
+        <div className="admin-chip">{t("Sets:")} {validation.summary?.set_count ?? validation.question_sets?.length ?? 0}</div>
+        <div className="admin-chip">{t("Questions:")} {validation.summary?.question_count ?? 0}</div>
+        <div className="admin-chip">{t("Asset refs:")} {validation.summary?.asset_reference_count ?? 0}</div>
+        <div className="admin-chip">{validation.valid ? t("Validation passed") : t("Validation failed")}</div>
       </div>
 
       {validation.question_sets?.length ? (
         <div className="admin-help" style={{ marginTop: 8 }}>
-          Detected SetIDs: {validation.question_sets.map((item) => item.set_id).join(", ")}
+          {t("Detected SetIDs:")} {validation.question_sets.map((item) => item.set_id).join(", ")}
         </div>
       ) : null}
 
       {validation.errors?.length ? (
         <div className="super-validation-block error">
-          <div className="super-validation-title">Errors</div>
+          <div className="super-validation-title">{t("Errors")}</div>
           <ul className="super-validation-list">
             {validation.errors.map((item) => <li key={item}>{item}</li>)}
           </ul>
@@ -669,7 +671,7 @@ function ValidationReport({ validation }) {
 
       {validation.warnings?.length ? (
         <div className="super-validation-block warning">
-          <div className="super-validation-title">Warnings</div>
+          <div className="super-validation-title">{t("Warnings")}</div>
           <ul className="super-validation-list">
             {validation.warnings.map((item) => <li key={item}>{item}</li>)}
           </ul>
@@ -680,6 +682,7 @@ function ValidationReport({ validation }) {
 }
 
 export default function SuperTestsImportPage() {
+  const { t } = useLanguage();
   const { supabase, invokeWithAuth } = useSuperAdmin();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1301,14 +1304,14 @@ export default function SuperTestsImportPage() {
         <table className="admin-table" style={{ minWidth: 1320 }}>
           <thead>
             <tr>
-              <th>SetID</th>
-              <th>Description</th>
-              <th>Ver.</th>
-              <th>Questions</th>
-              <th>Visibility</th>
-              <th>Preview</th>
-              <th>Manage</th>
-              <th>Delete</th>
+              <th>{t("SetID")}</th>
+              <th>{t("Description")}</th>
+              <th>{t("Ver.")}</th>
+              <th>{t("Questions")}</th>
+              <th>{t("Visibility")}</th>
+              <th>{t("Preview")}</th>
+              <th>{t("Manage")}</th>
+              <th>{t("Delete")}</th>
             </tr>
           </thead>
           <tbody>
@@ -1339,26 +1342,26 @@ export default function SuperTestsImportPage() {
                   <td style={{ textAlign: "right" }}>{item.question_count ?? 0}</td>
                   <td>
                     <div style={{ fontWeight: 700 }}>
-                      {item.visibility_scope === "global" ? "All schools" : "Restricted"}
+                      {item.visibility_scope === "global" ? t("All schools") : t("Restricted")}
                     </div>
                     {item.visibility_scope === "restricted" ? (
                       <div className="daily-code">
-                        {(item.visible_schools ?? []).map((school) => school.name).join(", ") || "No schools"}
+                        {(item.visible_schools ?? []).map((school) => school.name).join(", ") || t("No schools")}
                       </div>
                     ) : null}
                   </td>
                   <td>
-                    <button className="btn" onClick={() => openPreview(item)}>Preview</button>
+                    <button className="btn" onClick={() => openPreview(item)}>{t("Preview")}</button>
                   </td>
                   <td>
-                    <button className="btn" onClick={() => openMetadataModal(item)}>Edit</button>
+                    <button className="btn" onClick={() => openMetadataModal(item)}>{t("Edit")}</button>
                   </td>
                   <td>
                     <button
                       className="btn btn-danger"
                       onClick={() => openDeleteModal(item)}
                     >
-                      {item.status === "archived" ? "Hard Delete" : "Delete"}
+                      {item.status === "archived" ? t("Hard Delete") : t("Delete")}
                     </button>
                   </td>
                 </tr>
@@ -1401,33 +1404,33 @@ export default function SuperTestsImportPage() {
                   strokeLinejoin="round"
                 />
               </svg>
-              Upload Question Sets
+              {t("Upload Question Sets")}
             </button>
           </div>
         </div>
 
         <div className="super-library-choice-card" style={{ marginTop: 10 }}>
           <div className="super-library-choice-row">
-            <div className="super-library-choice-label">Test type</div>
+            <div className="super-library-choice-label">{t("Test type")}</div>
             <div className="super-library-mode-tabs">
               <button
                 className={`super-library-mode-tab ${testType === "daily" ? "active" : ""}`}
                 type="button"
                 onClick={() => setTestType("daily")}
               >
-                Daily Test
+                {t("Daily Test")}
               </button>
               <button
                 className={`super-library-mode-tab ${testType === "model" ? "active" : ""}`}
                 type="button"
                 onClick={() => setTestType("model")}
               >
-                Model Test
+                {t("Model Test")}
               </button>
             </div>
           </div>
           <div className="super-library-choice-row">
-            <div className="super-library-choice-label">Category</div>
+            <div className="super-library-choice-label">{t("Category")}</div>
             {groupedQuestionSets.length > 0 ? (
               <div className="admin-mini-tabs results-category-tabs super-library-category-tabs">
                 <button
@@ -1439,7 +1442,7 @@ export default function SuperTestsImportPage() {
                     [activeCategoryKey]: "__all__",
                   }))}
                 >
-                  All Categories
+                  {t("All Categories")}
                 </button>
                 {groupedQuestionSets.map((group) => (
                   <button
@@ -1461,9 +1464,9 @@ export default function SuperTestsImportPage() {
 
         {msg ? <div className="admin-msg">{msg}</div> : null}
 
-        {loading ? <AdminLoadingState compact label="Loading sets..." className="admin-loading-state-spaced" /> : null}
+        {loading ? <AdminLoadingState compact label={t("Loading sets...")} className="admin-loading-state-spaced" /> : null}
         {!loading && groupedQuestionSets.length === 0 ? (
-          <div className="admin-help" style={{ marginTop: 12 }}>No sets to show yet.</div>
+          <div className="admin-help" style={{ marginTop: 12 }}>{t("No sets to show yet.")}</div>
         ) : null}
         {!loading ? (
           <>
@@ -1472,7 +1475,7 @@ export default function SuperTestsImportPage() {
                 <section key={group.category} className="super-library-section">
                   <div className="super-library-section-head">
                     <div className="super-library-section-title">{group.category}</div>
-                    <div className="admin-help">{group.items.length} set{group.items.length === 1 ? "" : "s"}</div>
+                    <div className="admin-help">{group.items.length} {t("set(s)")}</div>
                   </div>
                   {renderQuestionSetTable(group.items)}
                 </section>
@@ -1486,26 +1489,26 @@ export default function SuperTestsImportPage() {
         <div className="admin-modal-overlay" onClick={() => setUploadOpen(false)}>
           <div className="admin-modal upload-question-modal" onClick={(event) => event.stopPropagation()}>
             <div className="admin-modal-header">
-              <div className="admin-title">Upload Question Sets</div>
-              <button className="admin-modal-close" onClick={() => setUploadOpen(false)} aria-label="Close">
+              <div className="admin-title">{t("Upload Question Sets")}</div>
+              <button className="admin-modal-close" onClick={() => setUploadOpen(false)} aria-label={t("Close")}>
                 ×
               </button>
             </div>
 
             <div className="admin-form upload-question-form" style={{ marginTop: 10 }}>
               <div className="field">
-                <label>Test Type</label>
+                <label>{t("Test Type")}</label>
                 <select
                   value={uploadForm.test_type}
                   disabled={uploadForm.mode === "version"}
                   onChange={(event) => handleUploadTypeChange(event.target.value)}
                 >
-                  <option value="daily">Daily Test</option>
-                  <option value="model">Model Test</option>
+                  <option value="daily">{t("Daily Test")}</option>
+                  <option value="model">{t("Model Test")}</option>
                 </select>
               </div>
               <div className="field">
-                <label>Category</label>
+                <label>{t("Category")}</label>
                 <select
                   value={uploadCategorySelect}
                   onChange={(event) => handleUploadCategoryChange(event.target.value)}
@@ -1513,7 +1516,7 @@ export default function SuperTestsImportPage() {
                   {uploadCategoryOptions.map((category) => (
                     <option key={`${uploadForm.test_type}-${category}`} value={category}>{category}</option>
                   ))}
-                  <option value="__custom__">Custom...</option>
+                  <option value="__custom__">{t("Custom...")}</option>
                 </select>
                 {uploadCategorySelect === "__custom__" ? (
                   <input
@@ -1524,19 +1527,19 @@ export default function SuperTestsImportPage() {
                 ) : null}
               </div>
               <div className="field">
-                <label>Description</label>
+                <label>{t("Description")}</label>
                 <textarea
                   value={uploadForm.description}
                   onChange={(event) => setUploadForm((prev) => ({ ...prev, description: event.target.value }))}
                   rows={3}
-                  placeholder="Optional description for the uploaded SetID"
+                  placeholder={t("Optional description for the uploaded SetID")}
                 />
                 <div className="admin-help" style={{ marginTop: 4 }}>
-                  If this CSV contains multiple SetIDs, this description is applied to all of them.
+                  {t("If this CSV contains multiple SetIDs, this description is applied to all of them.")}
                 </div>
               </div>
               <div className="field">
-                <label>CSV File (required)</label>
+                <label>{t("CSV File (required)")}</label>
                 <input
                   type="file"
                   accept={uploadForm.test_type === "daily" ? ".csv,.tsv" : ".csv,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg"}
@@ -1544,12 +1547,12 @@ export default function SuperTestsImportPage() {
                 />
                 {csvFile ? (
                   <div className="admin-help" style={{ marginTop: 4 }}>
-                    CSV ready: {csvFile.name}
+                    {t("CSV ready:")} {csvFile.name}
                   </div>
                 ) : null}
               </div>
               <div className="field">
-                <label>Folder (PNG/MP3)</label>
+                <label>{t("Folder (PNG/MP3)")}</label>
                 <div className="upload-question-picker">
                   <input
                     ref={assetFolderInputRef}
@@ -1562,7 +1565,7 @@ export default function SuperTestsImportPage() {
                     onChange={(event) => handleAssetFolderSelection(Array.from(event.target.files ?? []))}
                   />
                   <button className="btn upload-question-picker-button" type="button" onClick={() => assetFolderInputRef.current?.click()}>
-                    Choose Folder
+                    {t("Choose Folder")}
                   </button>
                 </div>
                 {assetFiles.length ? (
@@ -1579,9 +1582,9 @@ export default function SuperTestsImportPage() {
                         className="attendance-import-status-spinner admin-loading-spinner upload-question-submit-spinner"
                         aria-hidden="true"
                       />
-                      <span>Uploading...</span>
+                      <span>{t("Uploading...")}</span>
                     </>
-                  ) : uploadForm.mode === "version" ? "Upload New Version" : "Create Question Sets"}
+                  ) : uploadForm.mode === "version" ? t("Upload New Version") : t("Create Question Sets")}
                 </button>
               </div>
               {uploadProgress.total > 0 ? (
@@ -1596,10 +1599,10 @@ export default function SuperTestsImportPage() {
               SetID is read from the CSV `set_id` column. If the file is missing `set_id`, the upload will fail. If the file contains multiple `set_id` values, each one is imported as a separate question set.
             </div>
             <div className="admin-help" style={{ marginTop: 8 }}>
-              Template: <a href="/daily_question_csv_template.csv" download>Daily CSV template</a>
+              {t("Template:")} <a href="/daily_question_csv_template.csv" download>{t("Daily CSV template")}</a>
             </div>
             <div className="admin-help" style={{ marginTop: 4 }}>
-              Template: <a href="/question_csv_template.csv" download>Model CSV template</a>
+              {t("Template:")} <a href="/question_csv_template.csv" download>{t("Model CSV template")}</a>
             </div>
           </div>
         </div>
@@ -1607,14 +1610,14 @@ export default function SuperTestsImportPage() {
 
       <QuestionSetUploadConflictModal
         open={Boolean(uploadConflict.open && uploadOpen)}
-        title="Existing SetIDs Found"
-        description="Some SetIDs in this upload already exist. Choose whether to create new versions for them or upload only the new SetIDs."
+        title={t("Existing SetIDs Found")}
+        description={t("Some SetIDs in this upload already exist. Choose whether to create new versions for them or upload only the new SetIDs.")}
         duplicateSetIds={uploadConflict.duplicateSetIds}
         allSetIds={uploadConflict.allSetIds}
-        allActionLabel="Update All Existing Versions"
-        newOnlyActionLabel="Only Upload New Sets"
-        allActionHint="Existing SetIDs will be imported as new versions."
-        newOnlyActionHint="Existing SetIDs will be skipped."
+        allActionLabel={t("Update All Existing Versions")}
+        newOnlyActionLabel={t("Only Upload New Sets")}
+        allActionHint={t("Existing SetIDs will be imported as new versions.")}
+        newOnlyActionHint={t("Existing SetIDs will be skipped.")}
         onAll={() => handleUploadConflictChoice("all")}
         onNewOnly={() => handleUploadConflictChoice("new_only")}
         onCancel={() => handleUploadConflictChoice("cancel")}
@@ -1624,25 +1627,25 @@ export default function SuperTestsImportPage() {
         <div className="admin-modal-overlay" onClick={() => setMetaOpen(false)}>
           <div className="admin-modal upload-question-modal" onClick={(event) => event.stopPropagation()}>
             <div className="admin-modal-header">
-              <div className="admin-title">{metaCsvFile ? "Upload New Version" : "Edit Question Set"}</div>
-              <button className="admin-modal-close" onClick={() => setMetaOpen(false)} aria-label="Close">
+              <div className="admin-title">{metaCsvFile ? t("Upload New Version") : t("Edit Question Set")}</div>
+              <button className="admin-modal-close" onClick={() => setMetaOpen(false)} aria-label={t("Close")}>
                 ×
               </button>
             </div>
 
             <div className="admin-form upload-question-form" style={{ marginTop: 10 }}>
               <div className="field">
-                <label>Test Type</label>
+                <label>{t("Test Type")}</label>
                 <select
                   value={metaForm.test_type}
                   onChange={(event) => handleMetaTypeChange(event.target.value)}
                 >
-                  <option value="daily">Daily Test</option>
-                  <option value="model">Model Test</option>
+                  <option value="daily">{t("Daily Test")}</option>
+                  <option value="model">{t("Model Test")}</option>
                 </select>
               </div>
               <div className="field">
-                <label>SetID</label>
+                <label>{t("SetID")}</label>
                 <input
                   value={metaForm.title}
                   readOnly={Boolean(metaCsvFile)}
@@ -1650,12 +1653,12 @@ export default function SuperTestsImportPage() {
                 />
                 {metaCsvFile ? (
                   <div className="admin-help" style={{ marginTop: 4 }}>
-                    The SetID stays fixed for version uploads.
+                    {t("The SetID stays fixed for version uploads.")}
                   </div>
                 ) : null}
               </div>
               <div className="field">
-                <label>{metaCsvFile ? "Category for New Version" : "Category"}</label>
+                <label>{metaCsvFile ? t("Category for New Version") : t("Category")}</label>
                 <select
                   value={metaCategorySelect}
                   onChange={(event) => handleMetaCategoryChange(event.target.value)}
@@ -1663,7 +1666,7 @@ export default function SuperTestsImportPage() {
                   {metaCategoryOptions.map((category) => (
                     <option key={`${metaForm.test_type}-${category}`} value={category}>{category}</option>
                   ))}
-                  <option value="__custom__">Custom...</option>
+                  <option value="__custom__">{t("Custom...")}</option>
                 </select>
                 {metaCategorySelect === "__custom__" ? (
                   <input
@@ -1674,16 +1677,16 @@ export default function SuperTestsImportPage() {
                 ) : null}
               </div>
               <div className="field">
-                <label>{metaCsvFile ? "Description for New Version" : "Description"}</label>
+                <label>{metaCsvFile ? t("Description for New Version") : t("Description")}</label>
                 <textarea
                   value={metaForm.description}
                   onChange={(event) => setMetaForm((prev) => ({ ...prev, description: event.target.value }))}
                   rows={3}
-                  placeholder="Optional SetID description"
+                  placeholder={t("Optional SetID description")}
                 />
               </div>
               <div className="field">
-                <label>CSV File</label>
+                <label>{t("CSV File")}</label>
                 <input
                   type="file"
                   accept={metaForm.test_type === "daily" ? ".csv,.tsv" : ".csv,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg"}
@@ -1691,12 +1694,12 @@ export default function SuperTestsImportPage() {
                 />
                 {metaCsvFile ? (
                   <div className="admin-help" style={{ marginTop: 4 }}>
-                    CSV ready: {metaCsvFile.name}. Uploading this file will create the next version for this SetID.
+                    {t("CSV ready:")} {metaCsvFile.name}. Uploading this file will create the next version for this SetID.
                   </div>
                 ) : null}
               </div>
               <div className="field">
-                <label>Folder (PNG/MP3)</label>
+                <label>{t("Folder (PNG/MP3)")}</label>
                 <div className="upload-question-picker">
                   <input
                     ref={metaAssetFolderInputRef}
@@ -1709,7 +1712,7 @@ export default function SuperTestsImportPage() {
                     onChange={(event) => handleMetaAssetFolderSelection(Array.from(event.target.files ?? []))}
                   />
                   <button className="btn upload-question-picker-button" type="button" onClick={() => metaAssetFolderInputRef.current?.click()}>
-                    Choose Folder
+                    {t("Choose Folder")}
                   </button>
                 </div>
                 {metaAssetFiles.length ? (
@@ -1720,7 +1723,7 @@ export default function SuperTestsImportPage() {
               </div>
               <div className="upload-question-actions">
                 <button className="btn btn-primary" onClick={saveMetadata} disabled={saving}>
-                  {saving ? "Saving..." : metaCsvFile ? "Upload New Version" : "Save Changes"}
+                  {saving ? t("Saving...") : metaCsvFile ? t("Upload New Version") : t("Save Changes")}
                 </button>
               </div>
               {metaUploadProgress.total > 0 ? (
@@ -1735,10 +1738,10 @@ export default function SuperTestsImportPage() {
               When editing an existing set, choose a CSV to create a new version with the same SetID.
             </div>
             <div className="admin-help" style={{ marginTop: 8 }}>
-              Template: <a href="/daily_question_csv_template.csv" download>Daily CSV template</a>
+              {t("Template:")} <a href="/daily_question_csv_template.csv" download>{t("Daily CSV template")}</a>
             </div>
             <div className="admin-help" style={{ marginTop: 4 }}>
-              Template: <a href="/question_csv_template.csv" download>Model CSV template</a>
+              {t("Template:")} <a href="/question_csv_template.csv" download>{t("Model CSV template")}</a>
             </div>
           </div>
         </div>
@@ -1749,9 +1752,9 @@ export default function SuperTestsImportPage() {
           <div className="admin-modal super-question-set-delete-modal" onClick={(event) => event.stopPropagation()}>
             <div className="admin-modal-header">
               <div className="admin-title">
-                {deleteTarget.status === "archived" ? "Hard Delete Question Set" : "Archive Question Set"}
+                {deleteTarget.status === "archived" ? t("Hard Delete Question Set") : t("Archive Question Set")}
               </div>
-              <button className="admin-modal-close" onClick={closeDeleteModal} aria-label="Close" disabled={saving}>
+              <button className="admin-modal-close" onClick={closeDeleteModal} aria-label={t("Close")} disabled={saving}>
                 ×
               </button>
             </div>
@@ -1770,10 +1773,10 @@ export default function SuperTestsImportPage() {
               </div>
               <div className="super-question-set-delete-actions">
                 <button className="btn" type="button" onClick={closeDeleteModal} disabled={saving}>
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button className="btn btn-danger" type="button" onClick={() => deleteQuestionSetFamily(deleteTarget)} disabled={saving}>
-                  {saving ? "Deleting..." : deleteTarget.status === "archived" ? "Delete Permanently" : "Archive"}
+                  {saving ? t("Deleting...") : deleteTarget.status === "archived" ? t("Delete Permanently") : t("Archive")}
                 </button>
               </div>
             </div>
@@ -1790,12 +1793,12 @@ export default function SuperTestsImportPage() {
           >
             <div className="admin-modal-header">
               <div>
-                <div className="admin-title">Preview: {previewSet?.title || ""}</div>
+                <div className="admin-title">{t("Preview:")} {previewSet?.title || ""}</div>
                 <div className="admin-help">
-                  Total: <b>{previewQuestions.length}</b>
+                  {t("Total:")} <b>{previewQuestions.length}</b>
                 </div>
               </div>
-              <button className="admin-modal-close" onClick={closePreview} aria-label="Close">
+              <button className="admin-modal-close" onClick={closePreview} aria-label={t("Close")}>
                 ×
               </button>
             </div>

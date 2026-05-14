@@ -5,8 +5,10 @@ import { useAdminConsoleWorkspaceContext } from "./AdminConsoleWorkspaceContext"
 import { useAnnouncementsWorkspaceState } from "./AdminConsoleAnnouncementsWorkspaceState";
 import AdminStatusMessage from "./AdminStatusMessage";
 import { formatDateTime } from "../lib/adminFormatters";
+import { useLanguage } from "../lib/i18n";
 
 export default function AdminConsoleAnnouncementsWorkspace() {
+  const { t } = useLanguage();
   const { supabase, activeSchoolId, session } = useAdminConsoleWorkspaceContext();
   const {
     announcements,
@@ -39,7 +41,7 @@ export default function AdminConsoleAnnouncementsWorkspace() {
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div className="admin-title">Announcements</div>
+          <div className="admin-title">{t("Announcements")}</div>
           <button className="btn btn-primary admin-compact-action-btn admin-upload-cta-btn" onClick={openCreateAnnouncementModal}>
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path
@@ -66,14 +68,14 @@ export default function AdminConsoleAnnouncementsWorkspace() {
                 strokeLinecap="round"
               />
             </svg>
-            Create Announcement
+            {t("Create Announcement")}
           </button>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
             className="btn admin-icon-action-btn"
-            aria-label="Refresh announcements"
-            title="Refresh announcements"
+            aria-label={t("Refresh announcements")}
+            title={t("Refresh announcements")}
             onClick={() => fetchAnnouncements()}
           >
             <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -101,13 +103,13 @@ export default function AdminConsoleAnnouncementsWorkspace() {
         <table className="admin-table" style={{ minWidth: 720 }}>
           <thead>
             <tr>
-              <th>Created</th>
-              <th>Title</th>
-              <th>Message</th>
-              <th>Publish At</th>
-              <th>End At</th>
-              <th>Edit</th>
-              <th>Delete</th>
+              <th>{t("Created")}</th>
+              <th>{t("Title")}</th>
+              <th>{t("Message")}</th>
+              <th>{t("Publish At")}</th>
+              <th>{t("End At")}</th>
+              <th>{t("Edit")}</th>
+              <th>{t("Delete")}</th>
             </tr>
           </thead>
           <tbody>
@@ -120,12 +122,12 @@ export default function AdminConsoleAnnouncementsWorkspace() {
                 <td>{a.end_at ? formatDateTime(a.end_at) : ""}</td>
                 <td>
                   <button className="btn" onClick={() => startEditAnnouncement(a)}>
-                    Edit
+                    {t("Edit")}
                   </button>
                 </td>
                 <td>
                   <button className="btn btn-danger" onClick={() => deleteAnnouncement(a.id)}>
-                    Delete
+                    {t("Delete")}
                   </button>
                 </td>
               </tr>
@@ -139,31 +141,31 @@ export default function AdminConsoleAnnouncementsWorkspace() {
         <div className="admin-modal-overlay" onClick={closeCreateAnnouncementModal}>
           <div className="admin-modal invite-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <div className="admin-title">Create Announcement</div>
-              <button className="admin-modal-close" onClick={closeCreateAnnouncementModal} aria-label="Close">
+              <div className="admin-title">{t("Create Announcement")}</div>
+              <button className="admin-modal-close" onClick={closeCreateAnnouncementModal} aria-label={t("Close")}>
                 &times;
               </button>
             </div>
             <div className="admin-form" style={{ marginTop: 10 }}>
               <div className="field">
-                <label>Title</label>
+                <label>{t("Title")}</label>
                 <input
                   value={announcementForm.title}
                   onChange={(e) => setAnnouncementForm((s) => ({ ...s, title: e.target.value }))}
-                  placeholder="Announcement title"
+                  placeholder={t("Announcement title")}
                 />
               </div>
               <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <label>Message</label>
+                <label>{t("Message")}</label>
                 <textarea
                   value={announcementForm.body}
                   onChange={(e) => setAnnouncementForm((s) => ({ ...s, body: e.target.value }))}
-                  placeholder="Write your message here..."
+                  placeholder={t("Write your message here...")}
                   rows={6}
                 />
               </div>
               <div className="field small">
-                <label>Publish At</label>
+                <label>{t("Publish At")}</label>
                 <input
                   type="datetime-local"
                   step="300"
@@ -172,7 +174,7 @@ export default function AdminConsoleAnnouncementsWorkspace() {
                 />
               </div>
               <div className="field small">
-                <label>End At</label>
+                <label>{t("End At")}</label>
                 <input
                   type="datetime-local"
                   step="300"
@@ -182,8 +184,8 @@ export default function AdminConsoleAnnouncementsWorkspace() {
               </div>
             </div>
             <div style={{ marginTop: 12, display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <button className="btn" onClick={closeCreateAnnouncementModal}>Cancel</button>
-              <button className="btn btn-primary" onClick={createAnnouncement}>Create Announcement</button>
+              <button className="btn" onClick={closeCreateAnnouncementModal}>{t("Cancel")}</button>
+              <button className="btn btn-primary" onClick={createAnnouncement}>{t("Create Announcement")}</button>
             </div>
           </div>
         </div>
@@ -193,31 +195,31 @@ export default function AdminConsoleAnnouncementsWorkspace() {
         <div className="admin-modal-overlay" onClick={cancelEditAnnouncement}>
           <div className="admin-modal invite-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <div className="admin-title">Edit Announcement</div>
-              <button className="admin-modal-close" onClick={cancelEditAnnouncement} aria-label="Close">
+              <div className="admin-title">{t("Edit Announcement")}</div>
+              <button className="admin-modal-close" onClick={cancelEditAnnouncement} aria-label={t("Close")}>
                 &times;
               </button>
             </div>
             <div className="admin-form" style={{ marginTop: 10 }}>
               <div className="field">
-                <label>Title</label>
+                <label>{t("Title")}</label>
                 <input
                   value={editingAnnouncementForm.title}
                   onChange={(e) => setEditingAnnouncementForm((s) => ({ ...s, title: e.target.value }))}
-                  placeholder="Announcement title"
+                  placeholder={t("Announcement title")}
                 />
               </div>
               <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <label>Message</label>
+                <label>{t("Message")}</label>
                 <textarea
                   value={editingAnnouncementForm.body}
                   onChange={(e) => setEditingAnnouncementForm((s) => ({ ...s, body: e.target.value }))}
-                  placeholder="Write your message here..."
+                  placeholder={t("Write your message here...")}
                   rows={6}
                 />
               </div>
               <div className="field small">
-                <label>Publish At</label>
+                <label>{t("Publish At")}</label>
                 <input
                   type="datetime-local"
                   step="300"
@@ -226,7 +228,7 @@ export default function AdminConsoleAnnouncementsWorkspace() {
                 />
               </div>
               <div className="field small">
-                <label>End At</label>
+                <label>{t("End At")}</label>
                 <input
                   type="datetime-local"
                   step="300"
@@ -236,8 +238,8 @@ export default function AdminConsoleAnnouncementsWorkspace() {
               </div>
             </div>
             <div style={{ marginTop: 12, display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <button className="btn" onClick={cancelEditAnnouncement}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveAnnouncementEdits}>Save</button>
+              <button className="btn" onClick={cancelEditAnnouncement}>{t("Cancel")}</button>
+              <button className="btn btn-primary" onClick={saveAnnouncementEdits}>{t("Save")}</button>
             </div>
           </div>
         </div>

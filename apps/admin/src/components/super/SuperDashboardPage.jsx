@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSuperAdmin } from "./SuperAdminShell";
 import AdminLoadingState from "../AdminLoadingState";
+import { useLanguage } from "../../lib/i18n";
 
 function MetricCard({ label, value, help }) {
   return (
@@ -35,6 +36,7 @@ function formatPercent(value) {
 
 export default function SuperDashboardPage() {
   const { supabase } = useSuperAdmin();
+  const { t } = useLanguage();
   const [filters, setFilters] = useState(defaultRange);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
@@ -60,7 +62,7 @@ export default function SuperDashboardPage() {
       if (cancelled) return;
 
       if (error) {
-        setMsg(error.message || "Failed to load dashboard metrics.");
+        setMsg(error.message || t("Failed to load dashboard metrics."));
         setStats({
           total_schools: null,
           total_students: null,
@@ -93,13 +95,13 @@ export default function SuperDashboardPage() {
       <div className="admin-panel">
         <div className="super-toolbar">
           <div>
-            <div className="admin-title">Date Range</div>
-            <div className="admin-help">Default range is the last 30 days.</div>
+            <div className="admin-title">{t("Date Range")}</div>
+            <div className="admin-help">{t("Default range is the last 30 days.")}</div>
           </div>
         </div>
         <div className="admin-form" style={{ marginTop: 12 }}>
           <div className="field small">
-            <label>From</label>
+            <label>{t("From")}</label>
             <input
               type="date"
               value={filters.from}
@@ -107,7 +109,7 @@ export default function SuperDashboardPage() {
             />
           </div>
           <div className="field small">
-            <label>To</label>
+            <label>{t("To")}</label>
             <input
               type="date"
               value={filters.to}
@@ -119,36 +121,36 @@ export default function SuperDashboardPage() {
 
       <div className="admin-grid super-metrics-grid">
         <MetricCard
-          label="Total schools"
-          value={loading ? <AdminLoadingState compact label="Loading..." /> : stats.total_schools ?? "N/A"}
-          help="All registered schools."
+          label={t("Total schools")}
+          value={loading ? <AdminLoadingState compact label={t("Loading...")} /> : stats.total_schools ?? "N/A"}
+          help={t("All registered schools.")}
         />
         <MetricCard
-          label="Total students"
-          value={loading ? <AdminLoadingState compact label="Loading..." /> : stats.total_students ?? "N/A"}
-          help="Student profiles across every school."
+          label={t("Total students")}
+          value={loading ? <AdminLoadingState compact label={t("Loading...")} /> : stats.total_students ?? "N/A"}
+          help={t("Student profiles across every school.")}
         />
         <MetricCard
-          label="Total tests taken"
-          value={loading ? <AdminLoadingState compact label="Loading..." /> : stats.total_tests_taken ?? "N/A"}
-          help="Attempts recorded inside the selected range."
+          label={t("Total tests taken")}
+          value={loading ? <AdminLoadingState compact label={t("Loading...")} /> : stats.total_tests_taken ?? "N/A"}
+          help={t("Attempts recorded inside the selected range.")}
         />
         <MetricCard
-          label="Avg score"
-          value={loading ? <AdminLoadingState compact label="Loading..." /> : formatPercent(stats.avg_score)}
-          help="Overall average score across recorded attempts."
+          label={t("Avg score")}
+          value={loading ? <AdminLoadingState compact label={t("Loading...")} /> : formatPercent(stats.avg_score)}
+          help={t("Overall average score across recorded attempts.")}
         />
       </div>
 
       <div className="admin-panel" style={{ marginTop: 12 }}>
-        <div className="admin-title">Global Summary</div>
+        <div className="admin-title">{t("Global Summary")}</div>
         <div className="admin-help" style={{ marginTop: 6 }}>
-          Attendance average is calculated from attendance entries where `P` counts as present.
+          {t("Attendance average is calculated from attendance entries where `P` counts as present.")}
         </div>
         <div className="admin-kpi" style={{ marginTop: 12 }}>
           <div className="box">
-            <div className="label">Attendance Avg</div>
-            <div className="value">{loading ? <AdminLoadingState compact label="Loading..." /> : formatPercent(stats.attendance_avg)}</div>
+            <div className="label">{t("Attendance Avg")}</div>
+            <div className="value">{loading ? <AdminLoadingState compact label={t("Loading...")} /> : formatPercent(stats.attendance_avg)}</div>
           </div>
         </div>
         {msg ? <div className="admin-msg">{msg}</div> : null}
