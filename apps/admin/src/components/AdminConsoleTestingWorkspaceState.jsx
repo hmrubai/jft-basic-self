@@ -30,6 +30,7 @@ const QUESTION_COUNT_BATCH_SIZE = 20;
 const QUESTION_COUNT_BACKGROUND_PREFETCH_LIMIT = 40;
 const IMPORTED_ATTEMPT_BATCH_SIZE = 250;
 const DEFAULT_RETAKE_RELEASE_SCOPE = "failed_and_absent";
+const TESTS_VERSION_QUERY_CHUNK = 200;
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -1499,6 +1500,9 @@ export function useTestingWorkspaceState({
   const fetchTestSessionsRequestRef = useRef(0);
   const fetchAttemptsRequestRef = useRef(0);
   const resultsBootstrapRetryRef = useRef("");
+  const testsFetchScopeRef = useRef("none");
+  const repairedStoredScoreAttemptIdsRef = useRef(new Set());
+  const scoreRepairInFlightRef = useRef(false);
   const [attemptsRefreshing, setAttemptsRefreshing] = useState(false);
   const [hasNextMonthAttempts, setHasNextMonthAttempts] = useState(false);
   const [examLinks, setExamLinks] = useState([]);
@@ -3539,47 +3543,97 @@ export function useTestingWorkspaceState({
   // useCallback functions (39+ callbacks)
   // ========================================================================
 
-  const fetchTests = useCallback(async () => {
+  const fetchTests = useCallback(async (options = {}) => {
+    const { scopedVersions = null } = options;
     const requestId = fetchTestsRequestRef.current + 1;
     fetchTestsRequestRef.current = requestId;
     setTestsMsg("Loading...");
     if (!supabase) {
       setTestsMsg("Supabase not initialized.");
-      return;
+      return [];
     }
-    const { data, error } = await fetchAllPages((offset, pageSize) => (
-      supabase
-        .from("tests")
-        .select("id, version, title, type, is_public, pass_rate, created_at, updated_at")
-        .eq("is_public", true)
-        .order("updated_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .range(offset, offset + pageSize - 1)
-    ));
-    if (error) {
-      console.error("tests fetch error:", error);
-      if (fetchTestsRequestRef.current !== requestId) return;
+    const normalizedScopedVersions = Array.isArray(scopedVersions)
+      ? normalizeVersionList(scopedVersions)
+      : null;
+    if (normalizedScopedVersions && normalizedScopedVersions.length === 0) {
+      if (fetchTestsRequestRef.current !== requestId) return [];
+      testsRef.current = [];
+      testsFetchScopeRef.current = "scoped";
       setTests([]);
-      setTestsMsg(`Load failed: ${error.message}`);
-      setTestsLoaded(false);
-      return;
+      setTestsLoaded(true);
+      setTestsMsg("No tests.");
+      return [];
     }
+
+    const selectFields = "id, version, title, type, is_public, pass_rate, created_at, updated_at";
+    let data = [];
+    if (normalizedScopedVersions) {
+      const scopedRowsByVersion = new Map();
+      for (let index = 0; index < normalizedScopedVersions.length; index += TESTS_VERSION_QUERY_CHUNK) {
+        const chunkVersions = normalizedScopedVersions.slice(index, index + TESTS_VERSION_QUERY_CHUNK);
+        const { data: chunkRows, error } = await fetchAllPages((offset, pageSize) => (
+          supabase
+            .from("tests")
+            .select(selectFields)
+            .eq("is_public", true)
+            .in("version", chunkVersions)
+            .order("updated_at", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+            .range(offset, offset + pageSize - 1)
+        ));
+        if (error) {
+          console.error("tests fetch error:", error);
+          if (fetchTestsRequestRef.current !== requestId) return [];
+          setTests([]);
+          setTestsMsg(`Load failed: ${error.message}`);
+          setTestsLoaded(false);
+          return [];
+        }
+        (chunkRows ?? []).forEach((row) => {
+          if (!row?.version) return;
+          scopedRowsByVersion.set(row.version, row);
+        });
+      }
+      data = Array.from(scopedRowsByVersion.values());
+    } else {
+      const result = await fetchAllPages((offset, pageSize) => (
+        supabase
+          .from("tests")
+          .select(selectFields)
+          .eq("is_public", true)
+          .order("updated_at", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .range(offset, offset + pageSize - 1)
+      ));
+      if (result.error) {
+        console.error("tests fetch error:", result.error);
+        if (fetchTestsRequestRef.current !== requestId) return [];
+        setTests([]);
+        setTestsMsg(`Load failed: ${result.error.message}`);
+        setTestsLoaded(false);
+        return [];
+      }
+      data = result.data ?? [];
+    }
+
     const list = hydrateTestsWithRememberedQuestionCounts(data);
     const seeded = await seedModelCategory(list);
     const withDescriptions = await attachQuestionSetDescriptions(seeded);
     const hydrated = await attachGeneratedDailySourceSetIds(withDescriptions);
     const withRememberedCounts = hydrateTestsWithRememberedQuestionCounts(hydrated);
     testsRef.current = withRememberedCounts;
-    if (fetchTestsRequestRef.current !== requestId) return;
+    if (fetchTestsRequestRef.current !== requestId) return [];
+    testsFetchScopeRef.current = normalizedScopedVersions ? "scoped" : "full";
     setTests(withRememberedCounts);
     setTestsLoaded(true);
     setTestsMsg(list.length ? "" : "No tests.");
-  }, [supabase, seedModelCategory, attachQuestionSetDescriptions, attachGeneratedDailySourceSetIds]);
+    return withRememberedCounts;
+  }, [supabase, fetchAllPages, seedModelCategory, attachQuestionSetDescriptions, attachGeneratedDailySourceSetIds]);
 
   const fetchTestSessions = useCallback(async () => {
     const requestId = fetchTestSessionsRequestRef.current + 1;
     fetchTestSessionsRequestRef.current = requestId;
-    if (!supabase) return;
+    if (!supabase) return [];
     const { data, error } = await fetchAllPages((offset, pageSize) => {
       let query = supabase
         .from("test_sessions")
@@ -3594,13 +3648,13 @@ export function useTestingWorkspaceState({
     });
     if (error) {
       console.error("test_sessions fetch error:", error);
-      if (fetchTestSessionsRequestRef.current !== requestId) return;
+      if (fetchTestSessionsRequestRef.current !== requestId) return [];
       setTestSessionsLoaded(false);
-      return;
+      return [];
     }
     const hydrated = await attachGeneratedDailySourceSetIdsToSessions(data ?? []);
-    if (fetchTestSessionsRequestRef.current !== requestId) return;
-    setTestSessions((hydrated ?? []).map((session) => ({
+    if (fetchTestSessionsRequestRef.current !== requestId) return [];
+    const normalizedSessions = (hydrated ?? []).map((session) => ({
       audience_mode: "all",
       audience_student_ids: [],
       retake_source_session_id: null,
@@ -3608,9 +3662,15 @@ export function useTestingWorkspaceState({
       ...session,
       audience_mode: normalizeSessionAudienceMode(session?.audience_mode),
       audience_student_ids: normalizeSessionAudienceStudentIds(session?.audience_student_ids),
-    })));
+    }));
+    setTestSessions(normalizedSessions);
     setTestSessionsLoaded(true);
+    return normalizedSessions;
   }, [supabase, activeSchoolId, attachGeneratedDailySourceSetIdsToSessions]);
+
+  const getSessionProblemSetVersions = useCallback((sessionsList = []) => (
+    normalizeVersionList((sessionsList ?? []).map((session) => session?.problem_set_id))
+  ), []);
 
   const fetchAssets = useCallback(async () => {
     setAssetsMsg("Loading...");
@@ -3653,6 +3713,135 @@ export function useTestingWorkspaceState({
     setLinkMsg(data?.length ? "" : "No links.");
     setExamLinksLoaded(true);
   }, [supabase]);
+
+  const repairStoredAttemptScores = useCallback(async ({ attemptsData, requestId }) => {
+    if (!supabase || scoreRepairInFlightRef.current) return;
+
+    const repairCandidates = (attemptsData ?? []).filter((attempt) => (
+      isStoredScoreRepairCandidate(attempt)
+      && !repairedStoredScoreAttemptIdsRef.current.has(attempt.id)
+    ));
+    if (!repairCandidates.length) return;
+
+    repairCandidates.forEach((attempt) => {
+      if (!attempt?.id) return;
+      repairedStoredScoreAttemptIdsRef.current.add(attempt.id);
+    });
+
+    scoreRepairInFlightRef.current = true;
+    try {
+      const candidateVersions = Array.from(new Set(
+        repairCandidates
+          .map((attempt) => String(attempt?.test_version ?? "").trim())
+          .filter(Boolean)
+      ));
+      const questionFetchResults = await Promise.all(
+        candidateVersions.map(async (version) => {
+          const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, version, activeSchoolId);
+          return {
+            version,
+            data: data ?? [],
+            error: error ?? null,
+          };
+        })
+      );
+
+      const versionQuestions = new Map();
+      let questionFetchError = null;
+      questionFetchResults.forEach((result) => {
+        if (result.error) {
+          questionFetchError = result.error;
+          return;
+        }
+        versionQuestions.set(result.version, result.data.map(mapQuestion));
+      });
+
+      if (questionFetchError) {
+        console.error("results score repair question fetch failed:", questionFetchError);
+        return;
+      }
+
+      const repairUpdates = [];
+      repairCandidates.forEach((attempt) => {
+        const version = String(attempt?.test_version ?? "").trim();
+        const questionsList = versionQuestions.get(version) ?? [];
+        const recomputedScore = computeAttemptScoreFromQuestions(attempt, questionsList);
+        if (!recomputedScore || recomputedScore.total <= 0) return;
+
+        const storedCorrect = Number(attempt?.correct ?? 0);
+        const storedTotal = Number(attempt?.total ?? 0);
+        const storedScoreRate = Number(attempt?.score_rate ?? 0);
+        const normalizedStoredCorrect = Number.isFinite(storedCorrect) ? storedCorrect : 0;
+        const normalizedStoredTotal = Number.isFinite(storedTotal) ? storedTotal : 0;
+        const normalizedStoredRate = Number.isFinite(storedScoreRate) ? storedScoreRate : 0;
+        const scoreRateChanged = Math.abs(recomputedScore.scoreRate - normalizedStoredRate) > 0.000001;
+
+        if (
+          recomputedScore.correct === normalizedStoredCorrect
+          && recomputedScore.total === normalizedStoredTotal
+          && !scoreRateChanged
+        ) {
+          return;
+        }
+
+        repairUpdates.push({
+          id: attempt.id,
+          correct: recomputedScore.correct,
+          total: recomputedScore.total,
+          score_rate: recomputedScore.scoreRate,
+        });
+      });
+
+      if (!repairUpdates.length) return;
+
+      const successfulUpdates = [];
+      for (let index = 0; index < repairUpdates.length; index += 25) {
+        const chunk = repairUpdates.slice(index, index + 25);
+        const chunkResults = await Promise.all(chunk.map(async (attemptUpdate) => {
+          let result = await supabase
+            .from("attempts")
+            .update({
+              correct: attemptUpdate.correct,
+              total: attemptUpdate.total,
+              score_rate: attemptUpdate.score_rate,
+            })
+            .eq("id", attemptUpdate.id);
+          if (result.error && isGeneratedScoreRateInsertError(result.error)) {
+            result = await supabase
+              .from("attempts")
+              .update({
+                correct: attemptUpdate.correct,
+                total: attemptUpdate.total,
+              })
+              .eq("id", attemptUpdate.id);
+          }
+          return result;
+        }));
+
+        chunkResults.forEach((result, chunkIndex) => {
+          if (result?.error) {
+            console.error("results score repair update failed:", result.error);
+            return;
+          }
+          successfulUpdates.push(chunk[chunkIndex]);
+        });
+      }
+
+      if (!successfulUpdates.length) return;
+      if (fetchAttemptsRequestRef.current !== requestId) return;
+
+      const updatesById = new Map(successfulUpdates.map((entry) => [entry.id, entry]));
+      setAttempts((current) => (current ?? []).map((attempt) => (
+        updatesById.has(attempt.id)
+          ? { ...attempt, ...updatesById.get(attempt.id) }
+          : attempt
+      )));
+    } catch (repairError) {
+      console.error("results score repair failed:", repairError);
+    } finally {
+      scoreRepairInFlightRef.current = false;
+    }
+  }, [activeSchoolId, supabase]);
 
   const fetchAttempts = useCallback(async (options = {}) => {
     if (!supabase || !activeSchoolId) return;
@@ -3788,127 +3977,8 @@ export function useTestingWorkspaceState({
 
       const { attemptsData, viewMonthIso, nextMonthIso, monthDate } = loaded;
       if (fetchAttemptsRequestRef.current !== requestId) return;
-      let nextAttemptsData = attemptsData;
-
-      // Repair corrupted non-imported attempts where stored score fields are zero
-      // but answers exist and can be recomputed from the question set.
-      const repairCandidates = (attemptsData ?? []).filter((attempt) => (
-        isStoredScoreRepairCandidate(attempt)
-      ));
-      if (repairCandidates.length) {
-        try {
-          const candidateVersions = Array.from(new Set(
-            repairCandidates
-              .map((attempt) => String(attempt?.test_version ?? "").trim())
-              .filter(Boolean)
-          ));
-          const questionFetchResults = await Promise.all(
-            candidateVersions.map(async (version) => {
-              const { data, error } = await fetchQuestionsForVersionWithFallback(supabase, version, activeSchoolId);
-              return {
-                version,
-                data: data ?? [],
-                error: error ?? null,
-              };
-            })
-          );
-          if (fetchAttemptsRequestRef.current !== requestId) return;
-
-          const versionQuestions = new Map();
-          let questionFetchError = null;
-          questionFetchResults.forEach((result) => {
-            if (result.error) {
-              questionFetchError = result.error;
-              return;
-            }
-            versionQuestions.set(result.version, result.data.map(mapQuestion));
-          });
-
-          if (questionFetchError) {
-            console.error("results score repair question fetch failed:", questionFetchError);
-          } else {
-            const repairUpdates = [];
-            repairCandidates.forEach((attempt) => {
-              const version = String(attempt?.test_version ?? "").trim();
-              const questionsList = versionQuestions.get(version) ?? [];
-              const recomputedScore = computeAttemptScoreFromQuestions(attempt, questionsList);
-              if (!recomputedScore || recomputedScore.total <= 0) return;
-
-              const storedCorrect = Number(attempt?.correct ?? 0);
-              const storedTotal = Number(attempt?.total ?? 0);
-              const storedScoreRate = Number(attempt?.score_rate ?? 0);
-              const normalizedStoredCorrect = Number.isFinite(storedCorrect) ? storedCorrect : 0;
-              const normalizedStoredTotal = Number.isFinite(storedTotal) ? storedTotal : 0;
-              const normalizedStoredRate = Number.isFinite(storedScoreRate) ? storedScoreRate : 0;
-              const scoreRateChanged = Math.abs(recomputedScore.scoreRate - normalizedStoredRate) > 0.000001;
-
-              if (
-                recomputedScore.correct === normalizedStoredCorrect
-                && recomputedScore.total === normalizedStoredTotal
-                && !scoreRateChanged
-              ) {
-                return;
-              }
-
-              repairUpdates.push({
-                id: attempt.id,
-                correct: recomputedScore.correct,
-                total: recomputedScore.total,
-                score_rate: recomputedScore.scoreRate,
-              });
-            });
-
-            if (repairUpdates.length) {
-              const successfulUpdates = [];
-              for (let index = 0; index < repairUpdates.length; index += 25) {
-                const chunk = repairUpdates.slice(index, index + 25);
-                const chunkResults = await Promise.all(chunk.map(async (attemptUpdate) => {
-                  let result = await supabase
-                    .from("attempts")
-                    .update({
-                      correct: attemptUpdate.correct,
-                      total: attemptUpdate.total,
-                      score_rate: attemptUpdate.score_rate,
-                    })
-                    .eq("id", attemptUpdate.id);
-                  if (result.error && isGeneratedScoreRateInsertError(result.error)) {
-                    result = await supabase
-                      .from("attempts")
-                      .update({
-                        correct: attemptUpdate.correct,
-                        total: attemptUpdate.total,
-                      })
-                      .eq("id", attemptUpdate.id);
-                  }
-                  return result;
-                }));
-                if (fetchAttemptsRequestRef.current !== requestId) return;
-
-                chunkResults.forEach((result, chunkIndex) => {
-                  if (result?.error) {
-                    console.error("results score repair update failed:", result.error);
-                    return;
-                  }
-                  successfulUpdates.push(chunk[chunkIndex]);
-                });
-              }
-
-              if (successfulUpdates.length) {
-                const updatesById = new Map(successfulUpdates.map((entry) => [entry.id, entry]));
-                nextAttemptsData = (attemptsData ?? []).map((attempt) => (
-                  updatesById.has(attempt.id)
-                    ? { ...attempt, ...updatesById.get(attempt.id) }
-                    : attempt
-                ));
-              }
-            }
-          }
-        } catch (repairError) {
-          console.error("results score repair failed:", repairError);
-        }
-      }
-
-      setAttempts(nextAttemptsData);
+      setAttempts(attemptsData);
+      void repairStoredAttemptScores({ attemptsData, requestId });
       setAttemptsViewMonthIso(viewMonthIso ?? null);
       attemptsViewMonthIsoRef.current = viewMonthIso ?? null;
       setAttemptsMsg("");
@@ -3948,6 +4018,7 @@ export function useTestingWorkspaceState({
     getDailySessionCategoryName,
     selectedDailyCategory?.name,
     selectedModelCategory?.name,
+    repairStoredAttemptScores,
     supabase,
     testMetaByVersion,
   ]);
@@ -6885,15 +6956,31 @@ export function useTestingWorkspaceState({
 
   // Initialize data on mount
   useEffect(() => {
-    if (!supabase || !activeSchoolId || testsLoaded) return;
-    if (!tests.length) {
-      const initializeData = async () => {
+    if (!supabase || !activeSchoolId || testsLoaded || tests.length) return;
+    const dailyResultsActive = activeTab === "daily" && dailySubTab === "results";
+    const modelResultsActive = activeTab === "model" && modelSubTab === "results";
+    const initializeData = async () => {
+      if (!dailyResultsActive && !modelResultsActive) {
         await fetchTests();
-        // fetchTestSessions and fetchAssets will run after fetchTests completes
-      };
-      void initializeData();
-    }
-  }, [supabase, activeSchoolId, fetchTests, tests.length, testsLoaded]);
+        return;
+      }
+      const sessions = await fetchTestSessions();
+      const scopedVersions = getSessionProblemSetVersions(sessions);
+      await fetchTests({ scopedVersions });
+    };
+    void initializeData();
+  }, [
+    supabase,
+    activeSchoolId,
+    activeTab,
+    dailySubTab,
+    modelSubTab,
+    fetchTestSessions,
+    fetchTests,
+    getSessionProblemSetVersions,
+    tests.length,
+    testsLoaded,
+  ]);
 
   useEffect(() => {
     const normalizedTests = sanitizeTestList(tests);
@@ -6932,6 +7019,9 @@ export function useTestingWorkspaceState({
     if (!supabase || !activeSchoolId || (!dailyResultsActive && !modelResultsActive)) {
       return;
     }
+    if (!testsLoaded || !testSessionsLoaded) {
+      return;
+    }
 
     const categoryCount = dailyResultsActive ? dailyResultCategories.length : modelResultCategories.length;
     if (categoryCount > 0) {
@@ -6958,8 +7048,9 @@ export function useTestingWorkspaceState({
       : String(selectedModelCategory?.name ?? modelResultsCategory ?? "").trim();
 
     const retryBootstrap = async () => {
-      await fetchTests();
-      await fetchTestSessions();
+      const sessions = await fetchTestSessions();
+      const scopedVersions = getSessionProblemSetVersions(sessions);
+      await fetchTests({ scopedVersions });
       await fetchAttempts({
         viewMonthIso: currentMonthStartIso,
         searchLatestForCategory: true,
@@ -6977,6 +7068,7 @@ export function useTestingWorkspaceState({
     fetchAttempts,
     fetchTestSessions,
     fetchTests,
+    getSessionProblemSetVersions,
     modelResultCategories.length,
     modelResultsCategory,
     modelSubTab,
@@ -6984,7 +7076,19 @@ export function useTestingWorkspaceState({
     selectedModelCategory?.name,
     session?.user?.id,
     supabase,
+    testSessionsLoaded,
+    testsLoaded,
   ]);
+
+  useEffect(() => {
+    const dailyResultsActive = activeTab === "daily" && dailySubTab === "results";
+    const modelResultsActive = activeTab === "model" && modelSubTab === "results";
+    if (!supabase || !activeSchoolId || !testsLoaded || dailyResultsActive || modelResultsActive) {
+      return;
+    }
+    if (testsFetchScopeRef.current !== "scoped") return;
+    void fetchTests();
+  }, [activeSchoolId, activeTab, dailySubTab, fetchTests, modelSubTab, supabase, testsLoaded]);
 
   // Validate selected category against available categories
   // but don't auto-select - user must explicitly choose
@@ -7101,6 +7205,7 @@ export function useTestingWorkspaceState({
   useEffect(() => {
     if (activeTab !== "model" && activeTab !== "daily") return;
     if (!supabase || !activeSchoolId) return;
+    if (!testsLoaded || !testSessionsLoaded) return;
     if (activeTab === "daily" && dailySubTab !== "results") return;
     if (activeTab === "model" && modelSubTab !== "results") return;
     const now = new Date();
@@ -7124,6 +7229,8 @@ export function useTestingWorkspaceState({
     selectedDailyCategory?.name,
     selectedModelCategory?.name,
     supabase,
+    testSessionsLoaded,
+    testsLoaded,
   ]);
 
   // Note: questions for attempts are loaded on-demand — when the user opens an

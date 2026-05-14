@@ -166,6 +166,9 @@ export default function AdminConsoleDeferredFeatures({
   hasNextMonthAttempts,
   attemptsRefreshing,
   attemptsMsg,
+  attemptsLoaded,
+  testsMsg,
+  testSessionsMsg,
   testsLoaded,
   testSessionsLoaded,
 }) {
@@ -186,16 +189,26 @@ export default function AdminConsoleDeferredFeatures({
   const activeResultsMatrix = resultType === "daily" ? dailyResultsMatrix : modelResultsMatrix;
   const activeResultCategories = resultType === "daily" ? dailyResultCategories : modelResultCategories;
   const initialTestingDataReady = Boolean(testsLoaded) && Boolean(testSessionsLoaded);
+  const testsLoadingInProgress = typeof testsMsg === "string" && testsMsg.trim().toLowerCase() === "loading...";
+  const testSessionsLoadingInProgress = typeof testSessionsMsg === "string" && testSessionsMsg.trim().toLowerCase() === "loading...";
+  const initialResultsBootstrapPending = Boolean(
+    !initialTestingDataReady
+    || !attemptsLoaded
+    || testsLoadingInProgress
+    || testSessionsLoadingInProgress
+  );
   const shouldShowCategoriesLoading = Boolean(
     resultType
     && (resultType === "daily" || resultType === "mock")
-    && !initialTestingDataReady
+    && initialResultsBootstrapPending
     && (activeResultCategories?.length ?? 0) === 0
   );
   const shouldShowNoCategoriesMsg = Boolean(
     resultType
     && (resultType === "daily" || resultType === "mock")
     && initialTestingDataReady
+    && !initialResultsBootstrapPending
+    && !attemptsRefreshing
     && (activeResultCategories?.length ?? 0) === 0
   );
   const shouldShowResultsEmptyState = Boolean(
@@ -407,7 +420,7 @@ export default function AdminConsoleDeferredFeatures({
                     )}
                   </div>
 
-                  <AdminStatusMessage message={attemptsMsg} />
+                  {!attemptsRefreshing ? <AdminStatusMessage message={attemptsMsg} /> : null}
                   {shouldShowResultsEmptyState ? (
                     <div className="admin-msg">
                       No results were found for this category in {attemptsViewMonthLabel || "the selected month"}.

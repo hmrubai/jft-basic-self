@@ -3607,10 +3607,12 @@ export default function AdminConsole({
   const previousActiveSchoolIdForResetRef = useRef(activeSchoolId);
   const supabaseConfigError = ADMIN_SUPABASE_CONFIG_ERROR;
   const [supabase, setSupabase] = useState(null);
+  const [supabaseScopeId, setSupabaseScopeId] = useState(activeSchoolId ?? null);
   const activeWorkspaceKey = resolveAdminWorkspaceKey(activeTab);
   const activeWorkspaceConfig = ADMIN_WORKSPACE_CONFIG[activeWorkspaceKey];
   const [mountedWorkspaceKeys, setMountedWorkspaceKeys] = useState(() => [activeWorkspaceKey]);
   const mountedWorkspaceScopeRef = useRef(activeSchoolId ?? "");
+  const isSupabaseScopeReady = Boolean(supabase) && supabaseScopeId === (activeSchoolId ?? null);
 
   if (!renderTraceLoggedRef.current) {
     renderTraceLoggedRef.current = true;
@@ -3638,6 +3640,7 @@ export default function AdminConsole({
 
     if (supabaseConfigError) {
       setSupabase(null);
+      setSupabaseScopeId(null);
       return () => {
         cancelled = true;
       };
@@ -3646,11 +3649,14 @@ export default function AdminConsole({
     // Clear the previous scoped client immediately so child workspaces do not
     // issue requests with a stale school scope while the next client is loading.
     setSupabase(null);
+    setSupabaseScopeId(null);
 
     void loadAdminSupabaseModule()
       .then(({ createAdminSupabaseClient }) => {
         if (cancelled) return;
-        setSupabase(createAdminSupabaseClient({ schoolScopeId: activeSchoolId }));
+        const nextClient = createAdminSupabaseClient({ schoolScopeId: activeSchoolId });
+        setSupabase(nextClient);
+        setSupabaseScopeId(activeSchoolId ?? null);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -3660,6 +3666,7 @@ export default function AdminConsole({
           role: profile?.role ?? null,
         });
         setSupabase(null);
+        setSupabaseScopeId(null);
       });
 
     return () => {
@@ -5632,8 +5639,6 @@ export default function AdminConsole({
     let cancelled = false;
 
     async function syncManagedSession() {
-      setAuthReady(false);
-
       try {
         if (!managedSession?.access_token || !managedSession?.refresh_token) {
           const { error } = await supabase.auth.signOut({ scope: "local" });
@@ -5777,7 +5782,10 @@ export default function AdminConsole({
         return;
       }
       setSession((currentSession) => {
-        if (event === "TOKEN_REFRESHED" && currentSession?.user?.id === nextSession?.user?.id) {
+        if (
+          (event === "TOKEN_REFRESHED" || event === "SIGNED_IN")
+          && currentSession?.user?.id === nextSession?.user?.id
+        ) {
           return currentSession;
         }
         return nextSession ?? null;
@@ -12299,6 +12307,9 @@ function openDailyRecordModal(record = null, recordDate = "") {
   }
 
   function handleAdminSchoolScopeChange(nextSchoolId) {
+    // Avoid a render where the previous scoped client runs queries for the new school.
+    setSupabase(null);
+    setSupabaseScopeId(null);
     setSchoolScopeId(nextSchoolId || null);
   }
 
@@ -12609,7 +12620,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
     return t("Admin Console");
   })();
   const workspaceContextValue = {
-    supabase,
+    supabase: isSupabaseScopeReady ? supabase : null,
     role: profile?.role ?? null,
     activeSchoolId,
     session,
