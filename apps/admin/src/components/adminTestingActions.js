@@ -1041,7 +1041,8 @@ export async function importModelResultsGoogleSheetsCsvAction(context, file, tar
         continue;
       }
 
-      selectedBlocks.forEach(({ session, total: totalColumns, sections: blockSections }) => {
+      selectedBlocks.forEach((block) => {
+        const { session, total: totalColumns, sections: blockSections } = block;
         const rate = parsePercentCell(row[totalColumns.rateColumnIndex]);
         if (rate == null) return;
         const score = parseScoreFractionCell(row[totalColumns.scoreColumnIndex]);

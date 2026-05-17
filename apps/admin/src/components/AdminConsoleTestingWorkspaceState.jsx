@@ -3291,7 +3291,7 @@ export function useTestingWorkspaceState({
       const visibleAttemptAt = (row, index) => row?.cells?.[index]?.[0] ?? null;
       const exportRows = [
         padCsvRow(
-          ["", "No.", "Student Name", "Section", "Withdrawn", ...exportSessions.map(({ session }) => session.title ?? session.problem_set_id ?? "")],
+          ["", t("No."), t("Student Name"), t("Section"), t("Withdrawn"), ...exportSessions.map(({ session }) => session.title ?? session.problem_set_id ?? "")],
           totalColumns
         ),
         padCsvRow(
@@ -3452,7 +3452,7 @@ export function useTestingWorkspaceState({
         (sum, block) => sum + (block.sectionTitles.length * 2) + 3,
         0
       );
-      const row1 = ["", "No.", "Student Name", "Section", "Withdrawn"];
+      const row1 = ["", t("No."), t("Student Name"), t("Section"), t("Withdrawn")];
       const row2 = ["", "", "", "", ""];
       const row3 = ["", "", "", "", ""];
       const row4 = ["", "", "", "", ""];
@@ -3861,8 +3861,18 @@ export function useTestingWorkspaceState({
     fetchAttemptsRequestRef.current = requestId;
     const preferredName = String(preferredCategoryName ?? "").trim()
       || (activeTab === "daily"
-        ? String(selectedDailyCategory?.name ?? "").trim()
-        : String(selectedModelCategory?.name ?? "").trim());
+        ? String(
+            selectedDailyCategory?.name
+            ?? dailyResultsCategory
+            ?? dailyResultCategories?.[0]?.name
+            ?? ""
+          ).trim()
+        : String(
+            selectedModelCategory?.name
+            ?? modelResultsCategory
+            ?? modelResultCategories?.[0]?.name
+            ?? ""
+          ).trim());
     const startMonthIso = explicitViewMonthIso !== undefined
       ? explicitViewMonthIso
       : (attemptsViewMonthIsoRef.current ?? (() => {
@@ -3879,8 +3889,7 @@ export function useTestingWorkspaceState({
 
     const getSessionCategoryName = (sessionRow) => {
       if (activeTab === "daily") return getDailySessionCategoryName(sessionRow);
-      const category = String(testMetaByVersion[sessionRow?.problem_set_id]?.category ?? "").trim();
-      return category || DEFAULT_MODEL_CATEGORY;
+      return getModelSessionCategoryName(sessionRow);
     };
 
     const loadMonth = async (viewMonthIso) => {
@@ -4021,13 +4030,17 @@ export function useTestingWorkspaceState({
   }, [
     activeTab,
     activeSchoolId,
+    dailyResultCategories,
+    dailyResultsCategory,
     fetchAllPages,
     getDailySessionCategoryName,
+    getModelSessionCategoryName,
+    modelResultCategories,
+    modelResultsCategory,
     selectedDailyCategory?.name,
     selectedModelCategory?.name,
     repairStoredAttemptScores,
     supabase,
-    testMetaByVersion,
   ]);
 
   const goToPreviousAttemptsMonth = useCallback(async () => {
@@ -7051,8 +7064,8 @@ export function useTestingWorkspaceState({
     const now = new Date();
     const currentMonthStartIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
     const preferredCategoryName = dailyResultsActive
-      ? String(selectedDailyCategory?.name ?? dailyResultsCategory ?? "").trim()
-      : String(selectedModelCategory?.name ?? modelResultsCategory ?? "").trim();
+      ? String(selectedDailyCategory?.name ?? dailyResultsCategory ?? dailyResultCategories?.[0]?.name ?? "").trim()
+      : String(selectedModelCategory?.name ?? modelResultsCategory ?? modelResultCategories?.[0]?.name ?? "").trim();
 
     const retryBootstrap = async () => {
       const sessions = await fetchTestSessions();
@@ -7069,6 +7082,7 @@ export function useTestingWorkspaceState({
   }, [
     activeSchoolId,
     activeTab,
+    dailyResultCategories,
     dailyResultCategories.length,
     dailyResultsCategory,
     dailySubTab,
@@ -7076,6 +7090,7 @@ export function useTestingWorkspaceState({
     fetchTestSessions,
     fetchTests,
     getSessionProblemSetVersions,
+    modelResultCategories,
     modelResultCategories.length,
     modelResultsCategory,
     modelSubTab,
@@ -7218,8 +7233,8 @@ export function useTestingWorkspaceState({
     const now = new Date();
     const currentMonthStartIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
     const preferredCategoryName = activeTab === "daily"
-      ? String(selectedDailyCategory?.name ?? dailyResultsCategory ?? "").trim()
-      : String(selectedModelCategory?.name ?? modelResultsCategory ?? "").trim();
+      ? String(selectedDailyCategory?.name ?? dailyResultsCategory ?? dailyResultCategories?.[0]?.name ?? "").trim()
+      : String(selectedModelCategory?.name ?? modelResultsCategory ?? modelResultCategories?.[0]?.name ?? "").trim();
     void fetchAttempts({
       viewMonthIso: currentMonthStartIso,
       searchLatestForCategory: true,
@@ -7228,9 +7243,11 @@ export function useTestingWorkspaceState({
   }, [
     activeTab,
     activeSchoolId,
+    dailyResultCategories,
     dailyResultsCategory,
     dailySubTab,
     fetchAttempts,
+    modelResultCategories,
     modelResultsCategory,
     modelSubTab,
     selectedDailyCategory?.name,

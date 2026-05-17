@@ -7472,7 +7472,7 @@ export default function AdminConsole({
     const normalizedStudentCode = normalizeStudentNumberInput(studentInfoForm.student_code).trim();
     const normalizedCurrentEmail = String(selectedStudent?.email ?? "").trim().toLowerCase() || null;
     if (studentInfoForm.student_code.trim() && !normalizedStudentCode) {
-      setStudentInfoMsg("Student No. must contain digits only.");
+      setStudentInfoMsg(t("Student No. must contain digits only."));
       return;
     }
 
@@ -7492,7 +7492,7 @@ export default function AdminConsole({
         return;
       }
       if (duplicateStudent?.id) {
-        setStudentInfoMsg("Student No. is already used by another student in this school.");
+        setStudentInfoMsg(t("Student No. is already used by another student in this school."));
         return;
       }
     }
@@ -7548,7 +7548,7 @@ export default function AdminConsole({
       console.error("student info update error:", error);
       setStudentInfoMsg(
         isUniqueViolationError(error)
-          ? "Student No. is already used by another student in this school."
+          ? t("Student No. is already used by another student in this school.")
           : `Save failed: ${error.message}`,
       );
       setStudentInfoSaving(false);
@@ -10340,7 +10340,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
       const personalInfoRows = [
         { label: "Full Name", value: detailedStudent.display_name || "-" },
         { label: "Email", value: detailedStudent.email || "-" },
-        { label: "Student No.", value: detailedStudent.student_code || "-" },
+        { label: t("Student No."), value: detailedStudent.student_code || "-" },
         { label: "Phone Number", value: detailedStudent.phone_number || "-" },
         {
           label: "Date of Birth",
@@ -10583,7 +10583,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
             <div class="report">
               <div class="report-header">
                 <div class="report-title">${escapeHtml(reportTitle)}</div>
-                <div class="report-meta">Student No.: ${escapeHtml(selectedStudent.student_code || "-")}</div>
+                <div class="report-meta">${t("Student No.")}: ${escapeHtml(selectedStudent.student_code || "-")}</div>
                 <div class="report-meta">Email: ${escapeHtml(selectedStudent.email || "-")}</div>
                 <div class="report-meta">${t("Generated:")} ${escapeHtml(new Date().toLocaleString(typeof document !== "undefined" && document.documentElement.lang === "ja" ? "ja-JP" : "en-GB", { timeZone: "Asia/Dhaka" }))}</div>
               </div>
@@ -11383,14 +11383,14 @@ function openDailyRecordModal(record = null, recordDate = "") {
         [
           "",
           "vb/w",
-          "Student Name",
-          "Section",
+          t("Student Name"),
+          t("Section"),
           "Phone Number",
           "Email Address",
-          "Attendance Rate",
+          t("Attendance Rate"),
           rangeHeaderLabel,
-          "Unexcused Absence",
-          "Withdrawn",
+          t("Unexcused Absence"),
+          t("Withdrawn"),
           ...allColumns.map((day) => formatSlashDateShortYear(day.day_date)),
         ],
         totalColumns
@@ -11496,7 +11496,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
     const visibleAttemptAt = (row, index) => row?.cells?.[index]?.[0] ?? null;
     const exportRows = [
       padCsvRow(
-        ["", "No.", "Student Name", "Section", "Withdrawn", ...sessions.map((session) => session.title ?? session.problem_set_id ?? "")],
+        ["", t("No."), t("Student Name"), t("Section"), t("Withdrawn"), ...sessions.map((session) => session.title ?? session.problem_set_id ?? "")],
         totalColumns
       ),
       padCsvRow(
@@ -11648,7 +11648,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
       (sum, block) => sum + (block.sectionTitles.length * 2) + 3,
       0
     );
-    const row1 = ["", "No.", "Student Name", "Section", "Withdrawn"];
+    const row1 = ["", t("No."), t("Student Name"), t("Section"), t("Withdrawn")];
     const row2 = ["", "", "", "", ""];
     const row3 = ["", "", "", "", ""];
     const row4 = ["", "", "", "", ""];
@@ -13323,7 +13323,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                   </div>
                 </div>
                 <div className="field">
-                  <label>Student No.</label>
+                  <label>{t("Student No.")}</label>
                   <input
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -13331,7 +13331,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                     onChange={(e) => setStudentInfoForm((s) => ({ ...s, student_code: normalizeStudentNumberInput(e.target.value) }))}
                   />
                   <div className="admin-help" style={{ marginTop: 4 }}>
-                    Numbers only. Must be unique within this school.
+                    {t("Numbers only. Must be unique within this school.")}
                   </div>
                 </div>
                 <div className="field">
@@ -13641,7 +13641,7 @@ function openDailyRecordModal(record = null, recordDate = "") {
                   />
                 </div>
                 <div className="field">
-                  <label>Student No.</label>
+                  <label>{t("Student No.")}</label>
                   <input
                     value={inviteForm.student_code}
                     onChange={(e) => setInviteForm((s) => ({ ...s, student_code: normalizeStudentNumberInput(e.target.value) }))}

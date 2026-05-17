@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import { createPortal } from "react-dom";
 import AdminLoadingState from "./AdminLoadingState";
 import AdminStatusMessage from "./AdminStatusMessage";
+import { useLanguage } from "../lib/i18n";
 
 function formatAttemptDetailDateTime(value) {
   if (!value) return "";
@@ -172,6 +173,7 @@ export default function AdminConsoleDeferredFeatures({
   testsLoaded,
   testSessionsLoaded,
 }) {
+  const { t } = useLanguage();
   const isImportedSummaryAttemptFn = typeof isImportedSummaryAttempt === "function"
     ? isImportedSummaryAttempt
     : () => false;
@@ -281,8 +283,8 @@ export default function AdminConsoleDeferredFeatures({
                     <button
                       className="btn admin-icon-action-btn"
                       type="button"
-                      aria-label="Refresh results"
-                      title="Refresh results"
+                      aria-label={t("Refresh results")}
+                      title={t("Refresh results")}
                       onClick={(e) => {
                         e.preventDefault();
                         if (typeof fetchAttempts === "function") {
@@ -323,7 +325,7 @@ export default function AdminConsoleDeferredFeatures({
                       }}
                     >
                       <span className="results-page-action-icon" aria-hidden="true">↓</span>
-                      <span>Export CSV</span>
+                      <span>{t("Export CSV")}</span>
                     </button>
                     <button
                       className="btn results-page-action-btn"
@@ -332,7 +334,7 @@ export default function AdminConsoleDeferredFeatures({
                       disabled={!handleOpenResultsImportStatus}
                     >
                       <span className="results-page-action-icon" aria-hidden="true">↑</span>
-                      <span>Import CSV</span>
+                      <span>{t("Import CSV")}</span>
                     </button>
                     {resultContext.type === "daily" ? (
                       <button
@@ -342,7 +344,7 @@ export default function AdminConsoleDeferredFeatures({
                         disabled={!selectedDailyCategory || !openDailyManualColumnModal}
                       >
                         <span className="results-page-action-icon" aria-hidden="true">+</span>
-                        <span>New Column</span>
+                        <span>{t("New Column")}</span>
                       </button>
                     ) : null}
                     <input
@@ -366,12 +368,12 @@ export default function AdminConsoleDeferredFeatures({
                 {quizMsg ? <div className="admin-help">{quizMsg}</div> : null}
                 {resultContext.type === "daily" && dailyManualEntryMode ? (
                   <div className="admin-help" style={{ marginTop: 6 }}>
-                    Manual entry mode is on. Click an empty cell to add a score, or click an imported summary cell to update it. Cells with real submitted attempts stay read-only.
+                    {t("Manual entry mode is on. Click an empty cell to add a score, or click an imported summary cell to update it. Cells with real submitted attempts stay read-only.")}
                   </div>
                 ) : null}
                 {resultContext.type === "daily" ? (
                   <div className="admin-help" style={{ marginTop: 6 }}>
-                    Use “New Column” to create a new test session column from scores you enter here.
+                    {t("Use 'New Column' to create a new test session column from scores you enter here.")}
                   </div>
                 ) : null}
               </div>
@@ -382,18 +384,18 @@ export default function AdminConsoleDeferredFeatures({
                     <AdminLoadingState centered label="Loading test categories..." />
                   ) : null}
                   {shouldShowNoCategoriesMsg ? (
-                    <div className="admin-msg">No test categories yet.</div>
+                    <div className="admin-msg">{t("No test categories yet.")}</div>
                   ) : null}
 
                   <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 12, marginBottom: 6, minHeight: 36 }}>
                     {attemptsRefreshing ? (
-                      <AdminLoadingState compact label="Loading..." className="admin-loading-state-inline-left" />
+                      <AdminLoadingState compact label={t("Loading...")} className="admin-loading-state-inline-left" />
                     ) : null}
                     <button
                       className="attendance-month-nav-btn"
                       type="button"
-                      aria-label="Previous month"
-                      title="Previous month"
+                      aria-label={t("Previous month")}
+                      title={t("Previous month")}
                       disabled={attemptsRefreshing || typeof goToPreviousAttemptsMonth !== "function"}
                       aria-busy={attemptsRefreshing}
                       onClick={() => goToPreviousAttemptsMonth?.()}
@@ -407,8 +409,8 @@ export default function AdminConsoleDeferredFeatures({
                       <button
                         className="attendance-month-nav-btn"
                         type="button"
-                        aria-label="Next month"
-                        title="Next month"
+                        aria-label={t("Next month")}
+                        title={t("Next month")}
                         disabled={attemptsRefreshing || typeof goToNextAttemptsMonth !== "function"}
                         aria-busy={attemptsRefreshing}
                         onClick={() => goToNextAttemptsMonth?.()}
@@ -423,7 +425,7 @@ export default function AdminConsoleDeferredFeatures({
                   {!attemptsRefreshing ? <AdminStatusMessage message={attemptsMsg} /> : null}
                   {shouldShowResultsEmptyState ? (
                     <div className="admin-msg">
-                      No results were found for this category in {attemptsViewMonthLabel || "the selected month"}.
+                      {t("No results were found for this category in")} {attemptsViewMonthLabel || t("the selected month")}.
                     </div>
                   ) : null}
 
@@ -441,8 +443,8 @@ export default function AdminConsoleDeferredFeatures({
                     >
                       <thead>
                         <tr>
-                          <th className="daily-sticky-1 daily-col-no">Student<br />No.</th>
-                          <th className="daily-sticky-2 daily-col-name">Student Name</th>
+                          <th className="daily-sticky-1 daily-col-no">{t("Student")}<br />{t("No.")}</th>
+                          <th className="daily-sticky-2 daily-col-name">{t("Student Name")}</th>
                           {(resultContext.type === "daily" ? dailyResultsMatrix.sessions : modelResultsMatrix.sessions).map((sessionItem, sessionIndex) => {
                             const activeMatrix = resultContext.type === "daily" ? dailyResultsMatrix : modelResultsMatrix;
                             const precomputedSessionAverage = (resultContext.type === "daily"
@@ -473,7 +475,7 @@ export default function AdminConsoleDeferredFeatures({
                                     <div className="daily-col-title">{formatResultSessionColumnTitle(sessionItem)}</div>
                                     <div className="daily-col-date">{formatDateShort(sessionItem.starts_at || sessionItem.created_at)}</div>
                                     <div className="daily-col-average">
-                                      Avg {(((sessionAverage?.averageRate ?? 0) * 100)).toFixed(1)}%
+                                      {t("Average")} {(((sessionAverage?.averageRate ?? 0) * 100)).toFixed(1)}%
                                     </div>
                                   </button>
                                 ) : (
@@ -481,7 +483,7 @@ export default function AdminConsoleDeferredFeatures({
                                     <div className="daily-col-title">{formatResultSessionColumnTitle(sessionItem)}</div>
                                     <div className="daily-col-date">{formatDateShort(sessionItem.starts_at || sessionItem.created_at)}</div>
                                     <div className="daily-col-average">
-                                      Avg {(((sessionAverage?.averageRate ?? 0) * 100)).toFixed(1)}%
+                                      {t("Average")} {(((sessionAverage?.averageRate ?? 0) * 100)).toFixed(1)}%
                                     </div>
                                   </div>
                                 )}
@@ -499,7 +501,7 @@ export default function AdminConsoleDeferredFeatures({
                               <td className="daily-sticky-2 daily-col-name">
                                 <div className="student-list-name-cell">
                                   {row.student.is_test_account ? (
-                                    <span className="student-test-account-badge" title="Test Account" aria-label="Test Account">
+                                    <span className="student-test-account-badge" title={t("Test Account")} aria-label={t("Test Account")}>
                                       T
                                     </span>
                                   ) : null}
@@ -594,8 +596,8 @@ export default function AdminConsoleDeferredFeatures({
                                           }}
                                         >
                                           {expandedResultCells[cellKey]
-                                            ? "Hide extra attempts"
-                                            : `${extraAttempts.length} more attempt${extraAttempts.length > 1 ? "s" : ""}`}
+                                            ? t("Hide extra attempts")
+                                            : `${extraAttempts.length} ${t(extraAttempts.length > 1 ? "more attempts" : "more attempt")}`}
                                         </button>
                                       ) : null}
                                       {canEditManualCell ? (
@@ -604,7 +606,7 @@ export default function AdminConsoleDeferredFeatures({
                                           type="button"
                                           onClick={() => openDailyManualEntryModal(row.student, sessionItem, attemptList)}
                                         >
-                                          {editableImportedAttempt ? "Edit manual result" : "Add result"}
+                                          {editableImportedAttempt ? t("Edit manual result") : t("Add result")}
                                         </button>
                                       ) : null}
                                     </div>
@@ -616,7 +618,7 @@ export default function AdminConsoleDeferredFeatures({
                       </tbody>
                     </table>
                   </div>
-                  <div className="admin-msg">{loading ? <AdminLoadingState compact label="Loading..." /> : msg}</div>
+                  <div className="admin-msg">{loading ? <AdminLoadingState compact label={t("Loading...")} /> : msg}</div>
                   {dailyManualEntryModal?.open && typeof document !== "undefined" ? createPortal((
                     <div
                       className="admin-modal-overlay"
@@ -627,12 +629,12 @@ export default function AdminConsoleDeferredFeatures({
                       <div className="admin-modal attendance-import-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="admin-modal-header">
                           <div className="admin-title">
-                            {dailyManualEntryModal.hasImportedAttempt ? "Edit Manual Daily Result" : "Add Manual Daily Result"}
+                            {dailyManualEntryModal.hasImportedAttempt ? t("Edit Manual Daily Result") : t("Add Manual Daily Result")}
                           </div>
                           {!dailyManualEntryModal.saving ? (
                             <button
                               className="admin-modal-close"
-                              aria-label="Close"
+                              aria-label={t("Close")}
                               type="button"
                               onClick={closeDailyManualEntryModal}
                             >
@@ -644,20 +646,20 @@ export default function AdminConsoleDeferredFeatures({
                         <div className="attendance-import-modal-body">
                           <div className="admin-form" style={{ gridTemplateColumns: "1fr", gap: 12 }}>
                             <div className="field" style={{ gridColumn: "1 / -1", marginBottom: 0 }}>
-                              <label>Student</label>
+                              <label>{t("Student")}</label>
                               <div className="form-input readonly">
                                 {dailyManualEntryStudent?.display_name ?? dailyManualEntryStudent?.email ?? dailyManualEntryStudent?.id ?? "-"}
                                 {dailyManualEntryStudent?.student_code ? ` (${dailyManualEntryStudent.student_code})` : ""}
                               </div>
                             </div>
                             <div className="field" style={{ gridColumn: "1 / -1", marginBottom: 0 }}>
-                              <label>Test Session</label>
+                              <label>{t("Test Session")}</label>
                               <div className="form-input readonly">
                                 {formatResultSessionDisplayTitle(dailyManualEntrySession)}
                               </div>
                             </div>
                             <div className="field" style={{ gridColumn: "1 / -1", marginBottom: 0 }}>
-                              <label>Score (%)</label>
+                              <label>{t("Score (%)")}</label>
                               <input
                                 value={dailyManualEntryModal.rateInput}
                                 onChange={(event) => {
@@ -668,14 +670,14 @@ export default function AdminConsoleDeferredFeatures({
                                     msg: "",
                                   }));
                                 }}
-                                placeholder="e.g. 82.5"
+                                placeholder={t("e.g. 82.5")}
                                 inputMode="decimal"
                                 disabled={dailyManualEntryModal.saving}
                               />
                             </div>
                           </div>
                           <div className="attendance-import-modal-note">
-                            This saves a summary result for the selected daily test session. Real submitted attempts are not modified.
+                            {t("This saves a summary result for the selected daily test session. Real submitted attempts are not modified.")}
                           </div>
                           {dailyManualEntryModal.msg ? (
                             <div className="admin-msg" style={{ marginTop: 10 }}>{dailyManualEntryModal.msg}</div>
@@ -690,7 +692,7 @@ export default function AdminConsoleDeferredFeatures({
                               onClick={clearDailyManualEntry}
                               disabled={dailyManualEntryModal.saving}
                             >
-                              Clear Manual Result
+                              {t("Clear Manual Result")}
                             </button>
                           ) : null}
                           <button
@@ -699,7 +701,7 @@ export default function AdminConsoleDeferredFeatures({
                             onClick={closeDailyManualEntryModal}
                             disabled={dailyManualEntryModal.saving}
                           >
-                            Cancel
+                            {t("Cancel")}
                           </button>
                           <button
                             className="btn btn-primary"
@@ -707,7 +709,7 @@ export default function AdminConsoleDeferredFeatures({
                             onClick={saveDailyManualEntry}
                             disabled={dailyManualEntryModal.saving}
                           >
-                            {dailyManualEntryModal.saving ? "Saving..." : "Save Result"}
+                            {dailyManualEntryModal.saving ? t("Saving...") : t("Save Result")}
                           </button>
                         </div>
                       </div>
@@ -722,11 +724,11 @@ export default function AdminConsoleDeferredFeatures({
                     >
                       <div className="admin-modal attendance-import-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="admin-modal-header">
-                          <div className="admin-title">New Manual Daily Results Column</div>
+                          <div className="admin-title">{t("New Manual Daily Results Column")}</div>
                           {!dailyManualColumnModal.saving ? (
                             <button
                               className="admin-modal-close"
-                              aria-label="Close"
+                              aria-label={t("Close")}
                               type="button"
                               onClick={closeDailyManualColumnModal}
                             >
@@ -738,13 +740,13 @@ export default function AdminConsoleDeferredFeatures({
                         <div className="attendance-import-modal-body">
                           <div className="admin-form" style={{ gridTemplateColumns: "1fr", gap: 12 }}>
                             <div className="field" style={{ gridColumn: "1 / -1", marginBottom: 0 }}>
-                              <label>SetID</label>
+                              <label>{t("SetID")}</label>
                               <div className="form-input readonly">
                                 {dailyManualColumnModal.testVersion || "-"}
                               </div>
                             </div>
                             <div className="field" style={{ gridColumn: "1 / -1", marginBottom: 0 }}>
-                              <label>Test Title</label>
+                              <label>{t("Test Title")}</label>
                               <input
                                 value={dailyManualColumnModal.title}
                                 onChange={(event) => {
@@ -755,12 +757,12 @@ export default function AdminConsoleDeferredFeatures({
                                     msg: "",
                                   }));
                                 }}
-                                placeholder="Enter a test title"
+                                placeholder={t("Enter a test title")}
                                 disabled={dailyManualColumnModal.saving}
                               />
                             </div>
                             <div className="field" style={{ gridColumn: "1 / -1", marginBottom: 0 }}>
-                              <label>Date</label>
+                              <label>{t("Date")}</label>
                               <input
                                 type="date"
                                 value={dailyManualColumnModal.sessionDate}
@@ -777,7 +779,7 @@ export default function AdminConsoleDeferredFeatures({
                             </div>
                           </div>
                           <div className="attendance-import-modal-note" style={{ marginBottom: 12 }}>
-                            Enter a score for each student. Leave a field blank to keep it as N/A.
+                            {t("Enter a score for each student. Leave a field blank to keep it as N/A.")}
                           </div>
                           <div style={{ maxHeight: 320, overflow: "auto", border: "1px solid var(--admin-control-border)", borderRadius: 8, padding: 12, display: "grid", gap: 10 }}>
                             {(dailyManualColumnModal.rows ?? []).map((row) => (
@@ -811,7 +813,7 @@ export default function AdminConsoleDeferredFeatures({
                             onClick={closeDailyManualColumnModal}
                             disabled={dailyManualColumnModal.saving}
                           >
-                            Cancel
+                            {t("Cancel")}
                           </button>
                           <button
                             className="btn btn-primary"
@@ -819,7 +821,7 @@ export default function AdminConsoleDeferredFeatures({
                             onClick={saveDailyManualColumn}
                             disabled={dailyManualColumnModal.saving}
                           >
-                            {dailyManualColumnModal.saving ? "Saving..." : "Save Column"}
+                            {dailyManualColumnModal.saving ? t("Saving...") : t("Save Column")}
                           </button>
                         </div>
                       </div>
@@ -831,23 +833,23 @@ export default function AdminConsoleDeferredFeatures({
                   <div style={{ marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <div>
-                        <div className="admin-title">Tests</div>
+                        <div className="admin-title">{t("Tests")}</div>
                       </div>
-                      <button className="btn" onClick={() => applyTestFilter("", resultContext.type)}>Clear Filter</button>
+                      <button className="btn" onClick={() => applyTestFilter("", resultContext.type)}>{t("Clear Filter")}</button>
                     </div>
                     {filters.testVersion ? (
                       <div className="admin-help" style={{ marginTop: 6 }}>
-                        Filter: <b>{filters.testVersion}</b>
+                        {t("Filter")}: <b>{filters.testVersion}</b>
                       </div>
                     ) : null}
                     <div className="admin-table-wrap" style={{ marginTop: 10 }}>
                       <table className="admin-table" style={{ minWidth: 860 }}>
                         <thead>
                           <tr>
-                            <th>Created</th>
-                            <th>SetID</th>
-                            <th>Category</th>
-                            <th>Questions</th>
+                            <th>{t("Created")}</th>
+                            <th>{t("SetID")}</th>
+                            <th>{t("Category")}</th>
+                            <th>{t("Questions")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -870,9 +872,9 @@ export default function AdminConsoleDeferredFeatures({
                       e.preventDefault();
                       runSearch(resultContext.type);
                     }}
-                  >
-                    <div className="field">
-                      <label>Student No.（partial match）</label>
+                    >
+                      <div className="field">
+                      <label>{t("Student No. (partial match)")}</label>
                       <input
                         placeholder="ID001"
                         value={filters.code}
@@ -880,7 +882,7 @@ export default function AdminConsoleDeferredFeatures({
                       />
                     </div>
                     <div className="field">
-                      <label>Display Name（部分一致）</label>
+                      <label>{t("Display Name (partial match)")}</label>
                       <input
                         placeholder="Taro"
                         value={filters.name}
@@ -888,7 +890,7 @@ export default function AdminConsoleDeferredFeatures({
                       />
                     </div>
                     <div className="field small">
-                      <label>From（created_at）</label>
+                      <label>{t("From (created_at)")}</label>
                       <input
                         type="date"
                         value={filters.from}
@@ -896,7 +898,7 @@ export default function AdminConsoleDeferredFeatures({
                       />
                     </div>
                     <div className="field small">
-                      <label>To（created_at）</label>
+                      <label>{t("To (created_at)")}</label>
                       <input
                         type="date"
                         value={filters.to}
@@ -904,7 +906,7 @@ export default function AdminConsoleDeferredFeatures({
                       />
                     </div>
                     <div className="field small">
-                      <label>Limit</label>
+                      <label>{t("Limit")}</label>
                       <select
                         value={filters.limit}
                         onChange={(e) => setFilters((s) => ({ ...s, limit: Number(e.target.value) }))}
@@ -917,21 +919,21 @@ export default function AdminConsoleDeferredFeatures({
                     </div>
                     <div className="field small">
                       <label>&nbsp;</label>
-                      <button className="btn btn-primary" type="submit">Search</button>
+                      <button className="btn btn-primary" type="submit">{t("Search")}</button>
                     </div>
                   </form>
 
                   <div className="admin-kpi">
                     <div className="box">
-                      <div className="label">Attempts</div>
+                      <div className="label">{t("Attempts")}</div>
                       <div className="value">{kpi.count}</div>
                     </div>
                     <div className="box">
-                      <div className="label">Avg rate</div>
+                      <div className="label">{t("Avg rate")}</div>
                       <div className="value">{(kpi.avgRate * 100).toFixed(1)}%</div>
                     </div>
                     <div className="box">
-                      <div className="label">Max rate</div>
+                      <div className="label">{t("Max rate")}</div>
                       <div className="value">{(kpi.maxRate * 100).toFixed(1)}%</div>
                     </div>
                   </div>
@@ -940,14 +942,14 @@ export default function AdminConsoleDeferredFeatures({
                     <table className="admin-table admin-model-results-table">
                       <thead>
                         <tr>
-                          <th>Created</th>
-                          <th>Name</th>
-                          <th>Student<br />No.</th>
-                          <th>Score</th>
-                          <th>Rate</th>
-                          <th>Test</th>
-                          <th>Detail CSV</th>
-                          <th>Delete</th>
+                          <th>{t("Created")}</th>
+                          <th>{t("Name")}</th>
+                          <th>{t("Student")}<br />{t("No.")}</th>
+                          <th>{t("Score")}</th>
+                          <th>{t("Rate")}</th>
+                          <th>{t("Test")}</th>
+                          <th>{t("Detail CSV")}</th>
+                          <th>{t("Delete")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -987,7 +989,7 @@ export default function AdminConsoleDeferredFeatures({
                                     exportSelectedAttemptCsv(a);
                                   }}
                                 >
-                                  Download
+                                  {t("Download")}
                                 </button>
                               </td>
                               <td>
@@ -1007,7 +1009,7 @@ export default function AdminConsoleDeferredFeatures({
                       </tbody>
                     </table>
                   </div>
-                  <div className="admin-msg">{loading ? <AdminLoadingState compact label="Loading..." /> : msg}</div>
+                  <div className="admin-msg">{loading ? <AdminLoadingState compact label={t("Loading...")} /> : msg}</div>
                 </>
               )}
             </>
@@ -1022,9 +1024,9 @@ export default function AdminConsoleDeferredFeatures({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="admin-modal-header daily-session-create-header">
-              <div className="admin-title">
-                {previewSession ? previewSession.title || previewSession.problem_set_id : previewTest || "Preview"}
-              </div>
+                <div className="admin-title">
+                  {previewSession ? previewSession.title || previewSession.problem_set_id : previewTest || t("Preview")}
+                </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {previewEditMode ? (
                   <button
@@ -1032,7 +1034,7 @@ export default function AdminConsoleDeferredFeatures({
                     type="button"
                     onClick={() => setPreviewEditMode(false)}
                   >
-                    Cancel
+                    {t("Cancel")}
                   </button>
                 ) : (
                   <button
@@ -1040,13 +1042,13 @@ export default function AdminConsoleDeferredFeatures({
                     type="button"
                     onClick={() => setPreviewEditMode(true)}
                   >
-                    Change Answers
+                    {t("Change Answers")}
                   </button>
                 )}
                 <button
                   className="admin-modal-close"
                   onClick={closePreview}
-                  aria-label="Close"
+                  aria-label={t("Close")}
                 >
                   ×
                 </button>
@@ -1055,7 +1057,7 @@ export default function AdminConsoleDeferredFeatures({
 
             <div className="daily-session-create-body" ref={previewBodyRef}>
               <div className="admin-help">
-                Total: <b>{previewQuestions.length}</b> questions
+                {t("Total")}: <b>{previewQuestions.length}</b> {t("questions")}
               </div>
               <AdminStatusMessage message={previewMsg} />
               <AdminStatusMessage message={previewReplacementMsg} />
@@ -1173,11 +1175,11 @@ export default function AdminConsoleDeferredFeatures({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="admin-modal-header daily-session-create-header">
-                <div className="admin-title">Attempt Detail</div>
+                <div className="admin-title">{t("Attempt Detail")}</div>
                 <button
                   className="admin-modal-close"
                   onClick={closeAttemptDetail}
-                  aria-label="Close"
+                  aria-label={t("Close")}
                 >
                   ×
                 </button>
@@ -1188,19 +1190,19 @@ export default function AdminConsoleDeferredFeatures({
                   <table className="attempt-detail-summary-table">
                     <tbody>
                       <tr>
-                        <th>Student Name</th>
+                        <th>{t("Student Name")}</th>
                         <td>{attemptStudentName}</td>
                       </tr>
                       <tr>
-                        <th>Test</th>
+                        <th>{t("Test")}</th>
                         <td>{attemptTitle}</td>
                       </tr>
                       <tr>
-                        <th>Attempt Date</th>
+                        <th>{t("Attempt Date")}</th>
                         <td>{formatAttemptDetailDateTime(selectedAttempt.created_at)}</td>
                       </tr>
                       <tr>
-                        <th>Tab left count</th>
+                        <th>{t("Tab left count")}</th>
                         <td className={tabLeftCount > 0 ? "attempt-detail-warn-value" : ""}>{tabLeftCount}</td>
                       </tr>
                     </tbody>
@@ -1219,7 +1221,7 @@ export default function AdminConsoleDeferredFeatures({
                         <path d="M4 15h12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
                     </span>
-                    <span>Export Attempt Detail (csv)</span>
+                    <span>{t("Export Attempt Detail (csv)")}</span>
                   </button>
                   <button
                     className="attempt-detail-action-button attempt-detail-action-button-danger"
@@ -1257,12 +1259,12 @@ export default function AdminConsoleDeferredFeatures({
                         </svg>
                       </span>
                     )}
-                    <span>{isDeletingThisAttempt ? "Deleting..." : "Delete Attempt"}</span>
+                    <span>{isDeletingThisAttempt ? t("Deleting...") : t("Delete Attempt")}</span>
                   </button>
                 </div>
               </div>
               <div className="attempt-detail-top-divider" />
-              {attemptQuestionsLoading ? <AdminLoadingState compact label="Loading questions..." /> : null}
+              {attemptQuestionsLoading ? <AdminLoadingState compact label={t("Loading questions...")} /> : null}
               {attemptQuestionsError ? <div className="admin-msg">{attemptQuestionsError}</div> : null}
 
               <div className="admin-top-tabs attempt-detail-tabs" style={{ marginBottom: 12 }}>
@@ -1271,7 +1273,7 @@ export default function AdminConsoleDeferredFeatures({
                   type="button"
                   onClick={() => setAttemptDetailTab("overview")}
                 >
-                  Overview
+                  {t("Overview")}
                 </button>
                 {!showSummaryOnly ? (
                   <button
@@ -1279,7 +1281,7 @@ export default function AdminConsoleDeferredFeatures({
                     type="button"
                     onClick={() => setAttemptDetailTab("questions")}
                   >
-                    All Questions
+                    {t("All Questions")}
                   </button>
                 ) : null}
               </div>
@@ -1288,22 +1290,22 @@ export default function AdminConsoleDeferredFeatures({
                 <div className="attempt-detail-pane">
                   <div className="attempt-detail-score-summary">
                     <div className="attempt-detail-score-row">
-                      <span className="attempt-detail-score-label">Total Score</span>
+                      <span className="attempt-detail-score-label">{t("Total Score")}</span>
                       <span className={`attempt-detail-score-right ${isPass ? "" : "attempt-detail-score-right-fail"}`}>
                         <span className="attempt-detail-score-rate">{scoreDisplay}</span>
                       </span>
                     </div>
                     <div className="attempt-detail-score-row">
-                      <span className="attempt-detail-score-label">Pass/Fail</span>
+                      <span className="attempt-detail-score-label">{t("Pass/Fail")}</span>
                       <span className={`attempt-detail-score-pass ${isPass ? "pass" : "fail"}`}>
-                        {isPass ? "Pass" : "Fail"}
+                        {isPass ? t("Pass") : t("Fail")}
                       </span>
                     </div>
                     <div className="attempt-detail-score-row">
-                      <span className="attempt-detail-score-label">Class Rank</span>
+                      <span className="attempt-detail-score-label">{t("Class Rank")}</span>
                       <span className="attempt-detail-score-rank">
                         {selectedAttemptRankInfo
-                          ? `${formatOrdinal(selectedAttemptRankInfo.rank)} of ${selectedAttemptRankInfo.total} students`
+                          ? `${formatOrdinal(selectedAttemptRankInfo.rank)} ${t("of")} ${selectedAttemptRankInfo.total} ${t("students")}`
                           : "—"}
                       </span>
                     </div>
@@ -1328,10 +1330,10 @@ export default function AdminConsoleDeferredFeatures({
                             )}
                             <thead>
                               <tr>
-                                <th className="attempt-score-detail-head-section">Section</th>
-                                {showRankingMainSectionsOnly ? null : <th className="attempt-score-detail-head-subsection">Sub-section</th>}
-                                {!isImportedAttempt && <th className="attempt-score-detail-head-total">Total</th>}
-                                {!isImportedAttempt && <th className="attempt-score-detail-head-correct">Correct</th>}
+                                <th className="attempt-score-detail-head-section">{t("Section")}</th>
+                                {showRankingMainSectionsOnly ? null : <th className="attempt-score-detail-head-subsection">{t("Sub-section")}</th>}
+                                {!isImportedAttempt && <th className="attempt-score-detail-head-total">{t("Total")}</th>}
+                                {!isImportedAttempt && <th className="attempt-score-detail-head-correct">{t("Correct")}</th>}
                                 <th className="attempt-score-detail-head-rate">%</th>
                               </tr>
                             </thead>
@@ -1360,7 +1362,7 @@ export default function AdminConsoleDeferredFeatures({
                                             <span className="session-ranking-section-header">{renderTwoLineHeader(group.mainSection)}</span>
                                           </td>
                                           <td className="attempt-score-detail-cell-subsection">
-                                            <span className="attempt-score-detail-total-label">Total</span>
+                                            <span className="attempt-score-detail-total-label">{t("Total")}</span>
                                           </td>
                                           {!isImportedAttempt && <td className="attempt-score-detail-cell-total">{group.total}</td>}
                                           {!isImportedAttempt && <td className={`attempt-score-detail-cell-correct ${isGroupBelowPass ? "attempt-score-detail-below-pass" : ""}`}>{group.correct}</td>}
@@ -1386,24 +1388,24 @@ export default function AdminConsoleDeferredFeatures({
                       </div>
                       {!showRankingMainSectionsOnly && !showSummaryOnly ? (
                         <div className="admin-help">
-                          Main section totals are shown with their sub-section breakdown underneath.
+                          {t("Main section totals are shown with their sub-section breakdown underneath.")}
                         </div>
                       ) : null}
                     </>
                   ) : (
                     selectedAttemptUsesImportedSummary ? (
                       <div className="admin-help" style={{ marginTop: 10 }}>
-                        Imported summary results do not include question-level detail.
+                        {t("Imported summary results do not include question-level detail.")}
                       </div>
                     ) : selectedAttemptIsModel ? (
                       <div className="admin-table-wrap" style={{ marginTop: 10 }}>
                         <table className="admin-table" style={{ minWidth: 520 }}>
                           <thead>
                             <tr>
-                              <th>Section</th>
-                              <th>Correct</th>
-                              <th>Total</th>
-                              <th>Rate</th>
+                              <th>{t("Section")}</th>
+                              <th>{t("Correct")}</th>
+                              <th>{t("Total")}</th>
+                              <th>{t("Rate")}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1508,7 +1510,7 @@ export default function AdminConsoleDeferredFeatures({
                                   ) : null}
                                   <div className="attempt-question-card-answer-grid">
                                     <div className="attempt-question-card-answer">
-                                      <div className="attempt-question-card-answer-label">Chosen</div>
+                                      <div className="attempt-question-card-answer-label">{t("Chosen")}</div>
                                       <div className="attempt-question-card-answer-value">
                                         {row.chosenImage ? (
                                           <img src={row.chosenImage} alt="chosen" className="attempt-question-card-choice-image" />
@@ -1518,7 +1520,7 @@ export default function AdminConsoleDeferredFeatures({
                                       </div>
                                     </div>
                                     <div className="attempt-question-card-answer">
-                                      <div className="attempt-question-card-answer-label">Correct</div>
+                                      <div className="attempt-question-card-answer-label">{t("Correct")}</div>
                                       <div className="attempt-question-card-answer-value">
                                         {row.correctImage ? (
                                           <img src={row.correctImage} alt="correct" className="attempt-question-card-choice-image" />
@@ -1577,7 +1579,7 @@ export default function AdminConsoleDeferredFeatures({
                               ) : null}
                               <div className="attempt-question-card-answer-grid">
                                 <div className="attempt-question-card-answer">
-                                  <div className="attempt-question-card-answer-label">Chosen</div>
+                                  <div className="attempt-question-card-answer-label">{t("Chosen")}</div>
                                   <div className="attempt-question-card-answer-value">
                                     {row.chosenImage ? (
                                       <img src={row.chosenImage} alt="chosen" className="attempt-question-card-choice-image" />
@@ -1587,7 +1589,7 @@ export default function AdminConsoleDeferredFeatures({
                                   </div>
                                 </div>
                                 <div className="attempt-question-card-answer">
-                                  <div className="attempt-question-card-answer-label">Correct</div>
+                                  <div className="attempt-question-card-answer-label">{t("Correct")}</div>
                                   <div className="attempt-question-card-answer-value">
                                     {row.correctImage ? (
                                       <img src={row.correctImage} alt="correct" className="attempt-question-card-choice-image" />
