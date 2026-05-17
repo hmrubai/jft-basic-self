@@ -157,6 +157,14 @@ function getRankingAttemptTimestamp(attempt, sessionLookup) {
   return Number.isFinite(time) ? time : getRowTimestamp(attempt);
 }
 
+function getRankingAttemptDurationMs(attempt) {
+  const start = new Date(attempt?.started_at ?? "").getTime();
+  const end = new Date(attempt?.ended_at ?? "").getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  if (end < start) return null;
+  return end - start;
+}
+
 function getRankingAttemptDisplayDateKey(attempt, sessionLookup) {
   return getBangladeshDateKey(getRankingAttemptDisplayDateValue(attempt, sessionLookup));
 }
@@ -244,8 +252,10 @@ function buildRankingAttemptRow(session, attempt, sessionLookup, tests = []) {
     scoreRate: normalizedScore,
     correct: attempt?.correct ?? 0,
     total: attempt?.total ?? 0,
+    started_at: attempt?.started_at ?? null,
     ended_at: attempt?.ended_at ?? null,
     created_at: attempt?.created_at ?? null,
+    durationMs: getRankingAttemptDurationMs(attempt),
     scopeLabel: getSessionDisplayTitle(session, tests),
     displayDateValue: getRankingAttemptDisplayDateValue(attempt, sessionLookup) || getRankingSessionDateValue(session),
     absent: false,
@@ -260,8 +270,10 @@ function buildRankingAbsentRow(session, tests = []) {
     scoreRate: 0,
     correct: null,
     total: null,
+    started_at: null,
     ended_at: null,
     created_at: null,
+    durationMs: null,
     scopeLabel: getSessionDisplayTitle(session, tests),
     displayDateValue: getRankingSessionDateValue(session),
     absent: true,
@@ -646,17 +658,29 @@ export function useRankingWorkspaceState({ supabase, activeSchoolId, session, te
             sessionLookup: rankingSessionLookup,
             tests,
           });
-          const sum = sessionRows.reduce((acc, item) => acc + Number(item.scoreRate || 0), 0);
+          const aggregate = sessionRows.reduce((acc, item) => {
+            acc.scoreSum += Number(item.scoreRate || 0);
+            if (Number.isFinite(item.durationMs)) {
+              acc.durationSumMs += item.durationMs;
+            } else {
+              acc.durationMissingCount += 1;
+            }
+            return acc;
+          }, { scoreSum: 0, durationSumMs: 0, durationMissingCount: 0 });
 
           return {
             student_id: student.id,
             student_name: studentMeta.get(student.id) ?? student.id,
-            average_rate: rankingSlotsCount ? sum / rankingSlotsCount : 0,
+            average_rate: rankingSlotsCount ? aggregate.scoreSum / rankingSlotsCount : 0,
+            totalDurationMs: aggregate.durationSumMs,
+            durationMissingCount: aggregate.durationMissingCount,
             usedAttempts: sessionRows,
           };
         })
         .sort((a, b) => {
           if (b.average_rate !== a.average_rate) return b.average_rate - a.average_rate;
+          if (a.durationMissingCount !== b.durationMissingCount) return a.durationMissingCount - b.durationMissingCount;
+          if (a.totalDurationMs !== b.totalDurationMs) return a.totalDurationMs - b.totalDurationMs;
           return String(a.student_name).localeCompare(String(b.student_name));
         })
         .map((item, index) => ({
