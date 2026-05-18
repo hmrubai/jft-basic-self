@@ -407,6 +407,14 @@ async function getEdgeFunctionErrorMessage(error) {
   return fallback;
 }
 
+function getEdgeFunctionPayloadErrorMessage(payload) {
+  if (!payload || typeof payload !== "object") return "";
+  const detail = String(payload?.detail ?? "").trim();
+  const serverError = String(payload?.error ?? payload?.message ?? "").trim();
+  if (serverError && detail) return `${serverError}: ${detail}`;
+  return serverError || detail;
+}
+
 function getPersonalInfoForm(student) {
   return {
     display_name: student?.display_name ?? "",
@@ -6054,12 +6062,16 @@ export default function AdminConsole({
         return;
       }
 
-      const { data: schoolOptionsData, error: schoolOptionsError } = await supabase.functions.invoke(
-        "get-admin-school-options",
-        {
-          body: {},
-        },
-      );
+      const schoolOptionsToken = await getAccessToken();
+      const { data: schoolOptionsData, error: schoolOptionsError } = schoolOptionsToken
+        ? await supabase.functions.invoke(
+            "get-admin-school-options",
+            {
+              body: {},
+              headers: { Authorization: `Bearer ${schoolOptionsToken}` },
+            },
+          )
+        : { data: null, error: { message: "Session expired. Please log in again." } };
 
       const functionAssignments = normalizeSchoolAssignments(schoolOptionsData?.schools);
 
@@ -7597,9 +7609,7 @@ export default function AdminConsole({
       );
       if (emailUpdateError || emailUpdateData?.error) {
         const invokeMessage = await getEdgeFunctionErrorMessage(emailUpdateError);
-        const payloadMessage = emailUpdateData?.detail
-          ? `${emailUpdateData.error}: ${emailUpdateData.detail}`
-          : emailUpdateData?.error;
+        const payloadMessage = getEdgeFunctionPayloadErrorMessage(emailUpdateData);
         const message = invokeMessage || payloadMessage || "Failed to update student login email.";
         setStudentInfoMsg(`Profile saved, but login email update failed: ${message}`);
         setStudentInfoSaving(false);
@@ -10179,7 +10189,13 @@ function openDailyRecordModal(record = null, recordDate = "") {
     });
     if (error) {
       console.error("invite-students error:", error);
-      setStudentMsg(`Create failed: ${error.message}`);
+      const message = await getEdgeFunctionErrorMessage(error);
+      setStudentMsg(`Create failed: ${message || "Failed to create students."}`);
+      return false;
+    }
+    if (data?.error) {
+      const message = getEdgeFunctionPayloadErrorMessage(data);
+      setStudentMsg(`Create failed: ${message || "Failed to create students."}`);
       return false;
     }
     const results = data?.results ?? [];
@@ -10231,12 +10247,14 @@ function openDailyRecordModal(record = null, recordDate = "") {
     });
     if (error) {
       console.error("reissue-temp-password error:", error);
-      setReissueMsg(`Reissue failed: ${error.message}`);
+      const message = await getEdgeFunctionErrorMessage(error);
+      setReissueMsg(`Reissue failed: ${message || "Failed to reissue temporary password."}`);
       setReissueLoading(false);
       return;
     }
     if (data?.error) {
-      setReissueMsg(`Reissue failed: ${data.error}`);
+      const message = getEdgeFunctionPayloadErrorMessage(data);
+      setReissueMsg(`Reissue failed: ${message || "Failed to reissue temporary password."}`);
       setReissueLoading(false);
       return;
     }
@@ -10274,11 +10292,13 @@ function openDailyRecordModal(record = null, recordDate = "") {
     });
     if (error) {
       console.error("delete-student error:", error);
-      setStudentMsg(`Delete failed: ${error.message}`);
+      const message = await getEdgeFunctionErrorMessage(error);
+      setStudentMsg(`Delete failed: ${message || "Failed to delete student."}`);
       return;
     }
     if (data?.error) {
-      setStudentMsg(`Delete failed: ${data.error}`);
+      const message = getEdgeFunctionPayloadErrorMessage(data);
+      setStudentMsg(`Delete failed: ${message || "Failed to delete student."}`);
       return;
     }
     if (selectedStudentId === userId) {

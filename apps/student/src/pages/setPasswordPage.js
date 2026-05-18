@@ -4,6 +4,49 @@ import { authState } from "../state/authState";
 import { supabase } from "../supabaseClient";
 import { triggerRender } from "../lib/renderBus";
 
+async function getAccessTokenForFunctionInvoke() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  let accessToken = sessionData?.session?.access_token ?? null;
+  const expiresAt = sessionData?.session?.expires_at ?? 0;
+  if (!accessToken || expiresAt * 1000 < Date.now() + 60_000) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError) {
+      accessToken = refreshed?.session?.access_token ?? null;
+    }
+  }
+  return accessToken;
+}
+
+async function getFunctionInvokeErrorMessage(error) {
+  if (!error) return "";
+  const fallback = String(error?.message ?? "").trim();
+  if (!error?.context) return fallback;
+  try {
+    const body = await error.context.json();
+    const detail = String(body?.detail ?? "").trim();
+    const serverError = String(body?.error ?? body?.message ?? "").trim();
+    if (serverError && detail) return `${serverError}: ${detail}`;
+    if (serverError) return serverError;
+    if (detail) return detail;
+  } catch {
+    try {
+      const text = String(await error.context.text()).trim();
+      if (text) return text;
+    } catch {
+      // Ignore context parsing errors and fall back to the client error message.
+    }
+  }
+  return fallback;
+}
+
+function getFunctionPayloadErrorMessage(payload) {
+  if (!payload || typeof payload !== "object") return "";
+  const detail = String(payload?.detail ?? "").trim();
+  const serverError = String(payload?.error ?? payload?.message ?? "").trim();
+  if (serverError && detail) return `${serverError}: ${detail}`;
+  return serverError || detail;
+}
+
 export function renderSetPassword(app) {
   app.innerHTML = `
     <div class="app">
@@ -69,11 +112,23 @@ export function renderSetPassword(app) {
     updateBtn.disabled = true;
     updateBtn.textContent = "Updating...";
     try {
+      const accessToken = await getAccessTokenForFunctionInvoke();
+      if (!accessToken) {
+        msgEl.textContent = "セッションが切れました。もう一度ログインしてください。";
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("set-student-password", {
         body: { password },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
-      if (error || data?.error) {
-        msgEl.textContent = error?.message ?? data?.error ?? "Failed to update password.";
+      if (error) {
+        const message = await getFunctionInvokeErrorMessage(error);
+        msgEl.textContent = message || "Failed to update password.";
+        return;
+      }
+      if (data?.error) {
+        const message = getFunctionPayloadErrorMessage(data);
+        msgEl.textContent = message || "Failed to update password.";
         return;
       }
 
