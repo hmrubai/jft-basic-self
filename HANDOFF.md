@@ -124,12 +124,14 @@ Notes:
 - Transfer is org-to-org only (not a region migration — project URL/keys do not change).
 - Billing usage may be split across source/target org depending on billing cycle timing.
 - Apps continue working without interruption — Supabase URL and keys are unchanged.
+- **Edge Function secrets (including `SUPABASE_SERVICE_ROLE_KEY`) transfer with the project — no re-entry needed.** Just verify they are visible in the dashboard after transfer.
 
 ### C. GitHub transfer (no user-facing risk)
 
 - [ ] `Repository Settings → Danger Zone → Transfer ownership`
 - [ ] Transfer `sarasugita/jft-basic` to partner GitHub org
 - [ ] New owner re-invites Sara as collaborator (Maintain or Admin)
+  - **Note:** transferring to an org resets individual collaborator access — re-invitation is required even if Sara was already added before transfer
 - [ ] Both parties update local remote URL:
   `git remote set-url origin https://github.com/<partner-org>/jft-basic`
 - [ ] Confirm branch protections and any Actions secrets are still in place
@@ -143,6 +145,7 @@ Note: Vercel continues serving the already-built apps — no downtime. Auto-depl
 - [ ] Immediately after transfer, check both production URLs are still responding
 - [ ] Reconnect the GitHub repository in Vercel Git settings (required after GitHub transfer)
 - [ ] Verify all environment variables are present (most are copied, but double-check)
+- [ ] Re-invite Sara as a team member (Admin role recommended during stabilization)
 - [ ] Trigger a fresh deployment for both projects
 - [ ] Smoke test both apps (see Section 8)
 
