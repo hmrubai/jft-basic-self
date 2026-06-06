@@ -8,6 +8,7 @@ export const defaultState = {
   sectionIndex: 0,
   questionIndexInSection: 0,
   answers: {},
+  audioPlayCounts: {},
   showBangla: false,
   testStartAt: null,
   testEndAt: null,

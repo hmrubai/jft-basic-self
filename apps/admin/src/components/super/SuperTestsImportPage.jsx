@@ -614,7 +614,7 @@ function mapDbQuestion(row) {
     answerIndex: row.answer_index,
     orderIndex: row.order_index ?? 0,
     ...data,
-    stemKind: data.stemKind ?? data.stem_kind ?? row.media_type ?? null,
+    stemKind: normalizeQuestionKind(data.stemKind ?? data.stem_kind ?? row.media_type ?? "") || null,
     stemAsset,
   };
 }
@@ -1824,10 +1824,10 @@ export default function SuperTestsImportPage() {
                 {previewSectionBreaks.map(({ question, index, sectionTitle, showHeader }) => {
                   const prompt = question.promptEn || question.promptBn || "";
                   const choices = question.choices ?? question.choicesJa ?? [];
-                  const stemKind = question.stemKind || "";
+                  const stemKind = normalizeQuestionKind(question.stemKind || "");
                   const stemText = question.stemText;
                   const stemExtra = question.stemExtra;
-                  const stemAsset = resolveMediaUrl(
+                  const rawStemAsset =
                     question.stemAsset ||
                     question.image ||
                     question.stemImage ||
@@ -1835,13 +1835,16 @@ export default function SuperTestsImportPage() {
                     question.tableImage ||
                     question.stem_image ||
                     question.stem_image_url ||
-                    null,
-                  );
+                    null;
+                  const stemAssets = splitStemLines(rawStemAsset).map((value) => resolveMediaUrl(value));
+                  const imageAssets = stemAssets.filter((value) => isImageAsset(value));
+                  const audioAssets = stemAssets.filter((value) => isAudioAsset(value));
+                  const stemAsset = stemAssets[0] || "";
                   const boxText = question.boxText;
                   const isImageStem = ["image", "passage_image", "table_image"].includes(stemKind);
                   const isAudioStem = stemKind === "audio";
-                  const shouldShowImage = isImageStem || (!stemKind && isImageAsset(stemAsset));
-                  const shouldShowAudio = isAudioStem || (!stemKind && isAudioAsset(stemAsset));
+                  const shouldShowImage = imageAssets.length > 0 || (isImageStem && stemAsset);
+                  const shouldShowAudio = audioAssets.length > 0 || (isAudioStem && stemAsset);
                   const stemLines = splitStemLines(stemExtra);
                   const stemSourceText = stemExtra || stemText || "";
                   const useSpeakerLayout = shouldUseSpeakerLayout(question, stemSourceText);
@@ -1922,15 +1925,25 @@ export default function SuperTestsImportPage() {
                           dangerouslySetInnerHTML={{ __html: renderUnderlinesHtml(boxText) }}
                         />
                       ) : null}
-                      {shouldShowImage && stemAsset ? (
-                        <img
-                          src={stemAsset}
-                          alt="stem"
-                          style={{ marginTop: 8, maxWidth: "100%", borderRadius: 12, border: "1px solid #d0d5dd" }}
-                        />
+                      {shouldShowImage ? (
+                        imageAssets.map((asset, assetIndex) => (
+                          <img
+                            key={`super-preview-image-${question.id}-${assetIndex}`}
+                            src={asset}
+                            alt="stem"
+                            style={{ marginTop: 8, maxWidth: "100%", borderRadius: 12, border: "1px solid #d0d5dd" }}
+                          />
+                        ))
                       ) : null}
-                      {shouldShowAudio && stemAsset ? (
-                        <audio controls src={stemAsset} style={{ marginTop: 8, width: "100%" }} />
+                      {shouldShowAudio ? (
+                        audioAssets.map((asset, assetIndex) => (
+                          <audio
+                            key={`super-preview-audio-${question.id}-${assetIndex}`}
+                            controls
+                            src={asset}
+                            style={{ marginTop: 8, width: "100%" }}
+                          />
+                        ))
                       ) : null}
                       {choices.length ? (
                         <div style={{ marginTop: 12, display: "grid", gap: 8 }}>

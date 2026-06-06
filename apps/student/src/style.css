@@ -2927,6 +2927,22 @@ button.student-application-view {
   display: block;
 }
 
+.stem-audio-player.audio-limit-reached {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.audio-limit-note {
+  font-size: 12px;
+  color: #555;
+  margin-top: 2px;
+}
+
+.audio-limit-note.audio-limit-exhausted {
+  color: #b42318;
+  font-weight: 600;
+}
+
 .detail-question-text {
   line-height: 1.45;
   display: -webkit-box;

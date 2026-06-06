@@ -165,7 +165,7 @@ export function renderStemHTML(question, opts = {}) {
     if (audioAssets.length) {
       parts.push(`
         <div class="stem-audio-wrap">
-          ${audioAssets.map((src) => `<audio class="stem-audio-player" controls preload="auto" src="${src}"></audio>`).join("")}
+          ${audioAssets.map((src, audioIndex) => `<audio class="stem-audio-player" controls preload="auto" data-qid="${question.id ?? ""}" data-audio-index="${audioIndex}" src="${src}"></audio>`).join("")}
         </div>
       `);
     }
@@ -196,7 +196,7 @@ export function renderStemHTML(question, opts = {}) {
   if (!question.stemKind && audioAssets.length === 1 && imageAssets.length === 0) {
     parts.push(`
       <div class="stem-audio-wrap">
-        <audio class="stem-audio-player" controls preload="auto" src="${audioAssets[0]}"></audio>
+        <audio class="stem-audio-player" controls preload="auto" data-qid="${question.id ?? ""}" data-audio-index="0" src="${audioAssets[0]}"></audio>
       </div>
     `);
   }
