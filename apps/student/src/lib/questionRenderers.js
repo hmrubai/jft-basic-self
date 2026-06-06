@@ -169,7 +169,7 @@ export function renderStemHTML(question, opts = {}) {
         </div>
       `);
     }
-    if (imageAssets.length) {
+    if (imageAssets.length && stemKind !== "audio") {
       parts.push(`
         <div class="${imgWrapClass}">
           ${imageAssets.map((src) => `<img class="${imgClass}" src="${src}" alt="stem" />`).join("")}
