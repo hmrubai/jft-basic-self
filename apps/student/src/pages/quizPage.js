@@ -8,6 +8,7 @@ import {
   setSingleAnswer, setPartAnswer, goPrevQuestion, goNextQuestionOrEnd, finishSection,
 } from "../lib/quizControls";
 import { triggerRender } from "../lib/renderBus";
+import { applyAudioPlayLimit } from "../lib/audioPlayLimit";
 
 export function renderQuiz(app) {
   if (getTotalTimeLeftSec() <= 0) {
@@ -92,4 +93,7 @@ export function renderQuiz(app) {
   app.querySelector("#nextBtn")?.addEventListener("click", goNextQuestionOrEnd);
 
   app.querySelector("#finishBtn")?.addEventListener("click", finishSection);
+
+  // Model tests: limit each listening clip to a fixed number of plays.
+  applyAudioPlayLimit(app, { enabled: !isDaily });
 }
