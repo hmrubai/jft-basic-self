@@ -118,11 +118,15 @@ export function getAttemptDedupKey(attempt) {
   // (legacy schema omits tab_left_count column; both paths include __meta in answers_json)
   // eslint-disable-next-line no-unused-vars
   const { __meta, ...answersCore } = (attempt?.answers_json ?? {});
+  // NOTE: ended_at is deliberately NOT part of the key. It can be computed from a
+  // `new Date()` fallback when state.testEndAt is unset, making it differ on every
+  // render — which previously broke the save in-flight/commit guards and caused
+  // duplicate-submission storms (see docs/attempts-duplicate-cleanup.md). A single
+  // sitting is identified by its stable started_at instead.
   const keyParts = [
     attempt?.test_session_id || "",
     attempt?.test_version || "",
     startedAt,
-    endedAt,
     Number(attempt?.correct) || 0,
     Number(attempt?.total) || 0,
     JSON.stringify(answersCore),

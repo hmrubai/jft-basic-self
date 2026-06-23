@@ -49,6 +49,14 @@ function buildAttemptPayload() {
   const activeSessionId = state.linkTestSessionId || state.selectedTestSessionId || null;
   const activeSession = getActiveTestSession();
   const tabLeftCount = getCurrentTabLeftCount();
+  // Freeze the end time once so ended_at is deterministic across re-renders.
+  // A non-deterministic ended_at previously changed the save key on every render,
+  // defeating the de-dup guards and causing duplicate-submission storms
+  // (see docs/attempts-duplicate-cleanup.md).
+  if (!state.testEndAt) {
+    state.testEndAt = Date.now();
+    saveState();
+  }
   return {
     student_id: authState.session?.user?.id ?? null,
     display_name: state.user?.name?.trim() || null,
@@ -163,6 +171,13 @@ async function saveAttemptIfNeeded(app, { force = false } = {}) {
     if (error && isMissingTabLeftCountError(error)) {
       const { tab_left_count, ...legacyPayload } = payload;
       ({ error } = await supabase.from("attempts").insert(legacyPayload));
+    }
+    // A unique-violation means this exact sitting was already stored (e.g. a
+    // concurrent in-flight insert or a network-layer replay won the race). The
+    // attempts_session_dedup_uidx backstop rejects the duplicate — treat it as a
+    // successful save rather than an error (see docs/attempts-duplicate-cleanup.md).
+    if (error && error.code === "23505") {
+      error = null;
     }
     if (error) {
       console.error("saveAttempt error:", error);
