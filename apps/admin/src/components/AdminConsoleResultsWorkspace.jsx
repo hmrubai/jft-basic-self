@@ -1550,6 +1550,33 @@ export default function AdminConsoleResultsWorkspace(props) {
   const sessionDetailNestedSectionAverages = sessionDetailDerived.sessionDetailNestedSectionAverages;
   const sessionDetailStudentRankingRows = sessionDetailDerived.sessionDetailStudentRankingRows;
   const sessionDetailRankingSections = sessionDetailDerived.sessionDetailRankingSections;
+  const sessionDetailAbsentStudents = useMemo(() => {
+    if (!selectedSessionDetail || sessionDetailUsesImportedResultsSummary) return [];
+    // Mirror the analysis "Absent" count: active roster students (non-withdrawn,
+    // non-test) who have no latest attempt. Audience scope is intentionally ignored
+    // so this list matches sessionDetailAnalysisSummary.absentCount.
+    const activeStudents = sessionStudents.filter(
+      (student) => !(student?.is_withdrawn || student?.is_test_account)
+    );
+    const attendedIds = new Set(
+      sessionDetailLatestAttempts.map((attempt) => attempt?.student_id).filter(Boolean)
+    );
+    const getCodeNumber = (student) => {
+      const match = String(student?.student_code ?? "").match(/(\d+)/);
+      return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+    };
+    return activeStudents
+      .filter((student) => !attendedIds.has(student.id))
+      .sort((a, b) => {
+        const an = getCodeNumber(a);
+        const bn = getCodeNumber(b);
+        if (an !== bn) return an - bn;
+        const ac = String(a?.student_code ?? "");
+        const bc = String(b?.student_code ?? "");
+        if (ac !== bc) return ac.localeCompare(bc);
+        return String(a?.display_name ?? "").localeCompare(String(b?.display_name ?? ""));
+      });
+  }, [selectedSessionDetail, sessionStudents, sessionDetailLatestAttempts, sessionDetailUsesImportedResultsSummary]);
   const isMockSessionDetailForExport = sessionDetail.type === "mock";
   const isDailySessionDetail = resultContext?.type === "daily" || String(sessionDetail.type ?? "").trim() === "daily";
   const sessionDetailBestQuestions = useMemo(
@@ -3610,6 +3637,7 @@ export default function AdminConsoleResultsWorkspace(props) {
         ["analysis", t("Result Analysis")],
         ["questions", t("Questions Tab")],
         ["attempts", t("Attempts Tab")],
+        ["absent", t("Absent Students")],
         ["studentRanking", t("Student Ranking Tab")],
       ];
     const analysisRadarData = sessionDetailMainSectionAverages.map((row) => ({
@@ -3824,6 +3852,39 @@ export default function AdminConsoleResultsWorkspace(props) {
                   {!sessionDetailDisplayAttempts.length ? (
                     <tr>
                       <td colSpan={8}>{t("No attempts yet.")}</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
+
+        {!sessionDetailLoading && !sessionDetailMsg && sessionDetailTab === "absent" ? (
+          <div className="session-detail-section">
+            <div className="admin-help">
+              {t("Absent")}: <b>{sessionDetailAbsentStudents.length}</b>
+            </div>
+            <div className="admin-table-wrap" style={{ marginTop: 12 }}>
+              <table className="admin-table" style={{ minWidth: 480 }}>
+                <thead>
+                  <tr>
+                    <th>No.</th>
+                    <th>{t("Name")}</th>
+                    <th>{t("Student No.")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessionDetailAbsentStudents.map((student, index) => (
+                    <tr key={`session-absent-${student.id}`}>
+                      <td>{index + 1}</td>
+                      <td>{student.display_name ?? ""}</td>
+                      <td>{student.student_code ?? ""}</td>
+                    </tr>
+                  ))}
+                  {!sessionDetailAbsentStudents.length ? (
+                    <tr>
+                      <td colSpan={3}>{t("No absent students.")}</td>
                     </tr>
                   ) : null}
                 </tbody>

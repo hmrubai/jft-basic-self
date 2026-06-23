@@ -640,6 +640,8 @@ const ja = {
   "Average score": "平均点数",
   "Questions Tab": "問題",
   "Attempts Tab": "受験",
+  "Absent Students": "欠席者",
+  "No absent students.": "欠席者はいません。",
   "Student Ranking Tab": "受験者ランキング",
   "Results Summary": "結果概要",
   "Score distribution and class averages": "点数分布とクラス平均",
