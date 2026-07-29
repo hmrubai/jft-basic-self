@@ -10,6 +10,32 @@ import { useLanguage } from "../lib/i18n";
 
 const ADMIN_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 
+const LINKED_QUESTION_SELECT =
+  "id, test_version, question_id, section_key, type, prompt_en, prompt_bn, answer_index, order_index, data";
+
+function isMissingRpcError(error) {
+  const code = String(error?.code ?? "");
+  return code === "PGRST202" || code === "42883";
+}
+
+// Derived sessions copy a question and keep `data.sourceVersion` pointing at the set it
+// came from. Filtering with `.contains("data", ...)` makes Postgres run the questions RLS
+// quals over the whole table before the jsonb filter (jsonb_contains is not leakproof),
+// which times out. phase40 adds an indexed SECURITY DEFINER lookup instead.
+async function fetchLinkedQuestionsBySourceVersion(supabaseClient, sourceVersion) {
+  const rpcResult = await supabaseClient.rpc("linked_questions_for_source_version", {
+    p_source_version: sourceVersion,
+  });
+  if (!rpcResult.error || !isMissingRpcError(rpcResult.error)) return rpcResult;
+
+  return supabaseClient
+    .from("questions")
+    .select(LINKED_QUESTION_SELECT)
+    .contains("data", { sourceVersion })
+    .order("test_version", { ascending: true })
+    .order("order_index", { ascending: true });
+}
+
 function splitStemLines(text) {
   return String(text ?? "")
     .split(/\r?\n|\|/)
@@ -1956,12 +1982,7 @@ export default function AdminConsoleResultsWorkspace(props) {
       editDescriptors.map(({ questionId, answerIndices }) => [questionId, answerIndices])
     );
 
-    const { data, error } = await supabase
-      .from("questions")
-      .select("id, test_version, question_id, section_key, type, prompt_en, prompt_bn, answer_index, order_index, data")
-      .contains("data", { sourceVersion: targetVersion })
-      .order("test_version", { ascending: true })
-      .order("order_index", { ascending: true });
+    const { data, error } = await fetchLinkedQuestionsBySourceVersion(supabase, targetVersion);
 
     if (error) {
       console.error("linked question lookup error:", error);
@@ -2267,15 +2288,19 @@ export default function AdminConsoleResultsWorkspace(props) {
           return nextData;
         })();
 
-      const { data, error } = await client
+      // Counted rather than returned: a derived copy living in another school is
+      // writable (phase40) but not readable, so a RETURNING clause would come back
+      // empty and look like a failed save.
+      const { count, error } = await client
         .from("questions")
-        .update({
-          answer_index: primaryAnswer,
-          data: dataUpdate,
-        })
-        .eq("id", update.dbId)
-        .select("id")
-        .maybeSingle();
+        .update(
+          {
+            answer_index: primaryAnswer,
+            data: dataUpdate,
+          },
+          { count: "exact" }
+        )
+        .eq("id", update.dbId);
 
       if (error) {
         return { ok: false, error };
@@ -2283,7 +2308,7 @@ export default function AdminConsoleResultsWorkspace(props) {
 
       return {
         ok: true,
-        matched: Boolean(data?.id),
+        matched: Number(count ?? 0) > 0,
       };
     };
 
