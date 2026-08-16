@@ -7089,13 +7089,18 @@ export default function AdminConsole({
     }
     setStudentListLoading(true);
     const { from, to } = studentListFilters;
-    let daysQuery = supabase
-      .from("attendance_days")
-      .select("id, day_date")
-      .eq("school_id", activeSchoolId);
-    if (from) daysQuery = daysQuery.gte("day_date", from);
-    if (to) daysQuery = daysQuery.lte("day_date", to);
-    const { data: daysData, error: daysError } = await daysQuery;
+    const { data: daysData, error: daysError } = await fetchAllPages((offset, pageSize) => {
+      let daysQuery = supabase
+        .from("attendance_days")
+        .select("id, day_date")
+        .eq("school_id", activeSchoolId);
+      if (from) daysQuery = daysQuery.gte("day_date", from);
+      if (to) daysQuery = daysQuery.lte("day_date", to);
+      return daysQuery
+        .order("day_date", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+    });
     if (daysError) {
       console.error("student list attendance days error:", daysError);
       setStudentListAttendanceMap({});
@@ -7104,10 +7109,16 @@ export default function AdminConsole({
       if (!dayIds.length) {
         setStudentListAttendanceMap({});
       } else {
-        const { data: entriesData, error: entriesError } = await supabase
-          .from("attendance_entries")
-          .select("day_id, student_id, status")
-          .in("day_id", dayIds);
+        const { data: entriesData, error: entriesError } = await fetchAllPages((offset, pageSize) => (
+          supabase
+            .from("attendance_entries")
+            .select("day_id, student_id, status")
+            .eq("school_id", activeSchoolId)
+            .in("day_id", dayIds)
+            .order("day_id", { ascending: true })
+            .order("student_id", { ascending: true })
+            .range(offset, offset + pageSize - 1)
+        ));
         if (entriesError) {
           console.error("student list attendance entries error:", entriesError);
           setStudentListAttendanceMap({});
