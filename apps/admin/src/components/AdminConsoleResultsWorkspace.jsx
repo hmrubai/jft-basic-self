@@ -1683,6 +1683,16 @@ export default function AdminConsoleResultsWorkspace(props) {
       const choiceText = formatAnswerChoiceLabel(item, chosen);
       return isImageAsset(choiceText) ? normalizeAdminRenderableAsset(choiceText) : "";
     };
+    const getExportChoices = (item, correctIndices) => (
+      (item?.choices ?? item?.choicesJa ?? item?.choicesEn ?? []).map((choice, index) => {
+        const image = getChoiceImage(item, index);
+        return {
+          text: image ? "" : String(choice ?? ""),
+          image,
+          isCorrect: correctIndices.includes(index),
+        };
+      })
+    );
 
     const rows = (sessionDetailQuestions ?? []).flatMap((rawQuestion) => {
       const question = mergeQuestionData(rawQuestion);
@@ -1730,6 +1740,7 @@ export default function AdminConsoleResultsWorkspace(props) {
             stemImages,
             correct: correctIndices.map((value) => formatAnswerChoiceLabel(part, value)).filter(Boolean).join(" / ") || "—",
             correctImage: getChoiceImage(part, correctIndices[0]),
+            choices: getExportChoices(part, correctIndices),
             rate: Number(accuracy?.rate ?? 0),
           };
         });
@@ -1750,6 +1761,7 @@ export default function AdminConsoleResultsWorkspace(props) {
         stemImages,
         correct: correctIndices.map((value) => formatAnswerChoiceLabel(question, value)).filter(Boolean).join(" / ") || "—",
         correctImage: getChoiceImage(question, correctIndices[0]),
+        choices: getExportChoices(question, correctIndices),
         rate: Number(accuracy?.rate ?? 0),
       }];
     });
@@ -3554,6 +3566,26 @@ export default function AdminConsoleResultsWorkspace(props) {
                             />
                           ))}
                         </div>
+                      ) : null}
+                      {row.choices?.length ? (
+                        <ol className="session-export-choice-list">
+                          {row.choices.map((choice, index) => (
+                            <li
+                              key={`session-export-choice-${row.qid}-${index}`}
+                              className={choice.isCorrect ? "correct" : ""}
+                            >
+                              {choice.image ? (
+                                <img
+                                  src={choice.image}
+                                  alt={`${t("Question")} ${row.qid} choice ${index + 1}`}
+                                  className="session-export-inline-image choice"
+                                />
+                              ) : (
+                                <span dangerouslySetInnerHTML={{ __html: renderUnderlinesHtml(choice.text) }} />
+                              )}
+                            </li>
+                          ))}
+                        </ol>
                       ) : null}
                     </td>
                     <td>
